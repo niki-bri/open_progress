@@ -208,9 +208,9 @@ struct EditorView: View {
     private func finishThemeDrag(_ value: DragGesture.Value, pageStride: CGFloat) {
         guard !isThemePaging else { return }
 
+        let translation = max(min(value.translation.width, pageStride), -pageStride)
         let threshold = pageStride * 0.22
         let predicted = value.predictedEndTranslation.width
-        let translation = value.translation.width
         let direction: Int
 
         if predicted < -threshold || translation < -threshold {
@@ -221,29 +221,45 @@ struct EditorView: View {
             direction = 0
         }
 
+        // themeDragOffset (@GestureState) resets to zero unanimated the moment
+        // the gesture ends; hand the drag distance over to themePageOffset in
+        // the same frame so the cards settle from where the finger left them.
+        var handoff = Transaction()
+        handoff.disablesAnimations = true
+        withTransaction(handoff) {
+            themePageOffset = translation
+        }
+
         guard direction != 0 else {
-            withAnimation(.snappy(duration: 0.18)) {
+            withAnimation(.snappy(duration: 0.25)) {
                 themePageOffset = 0
             }
             return
         }
 
+        Haptics.selection()
+        isTitleFocused = false
         isThemePaging = true
-        withAnimation(.snappy(duration: 0.2)) {
-            themePageOffset = CGFloat(-direction) * pageStride
-        }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            let newIndex = Self.wrappedThemeIndex(focusedThemeIndex + direction)
-            withTransaction(Transaction(animation: nil)) {
-                focusedThemeIndex = newIndex
-                draft.style = Self.themeStyles[newIndex]
-                themePageOffset = 0
-            }
-            isThemePaging = false
-            Haptics.selection()
-            isTitleFocused = false
+        withAnimation(.snappy(duration: 0.25), completionCriteria: .removed) {
+            themePageOffset = CGFloat(-direction) * pageStride
+        } completion: {
+            commitThemePage(direction: direction)
         }
+    }
+
+    private func commitThemePage(direction: Int) {
+        // Content shifts by exactly one slot while the offset returns to zero,
+        // so the recentring must not animate — the pixels stay in place.
+        let newIndex = Self.wrappedThemeIndex(focusedThemeIndex + direction)
+        var commit = Transaction()
+        commit.disablesAnimations = true
+        withTransaction(commit) {
+            focusedThemeIndex = newIndex
+            draft.style = Self.themeStyles[newIndex]
+            themePageOffset = 0
+        }
+        isThemePaging = false
     }
 
     private func selectTheme(_ index: Int) {
@@ -938,40 +954,51 @@ private struct EditableEditorPreviewCard: View {
     private var progress: Double { item.progress }
     private var percentageText: String { progress.formatted(.percent.precision(.fractionLength(0))) }
     private var timeText: String {
-        let raw = item.homeTimeText().replacingOccurrences(of: "\n", with: " ")
-        if raw.hasPrefix("In ") {
-            return "\(raw.dropFirst(3)) left"
-        }
-        return raw
+        item.homeTimeText().replacingOccurrences(of: "\n", with: " ")
     }
 
-    private func titleField(color: Color, size: CGFloat, maxWidth: CGFloat? = nil) -> some View {
-        TextField("Event name", text: $item.title)
+    private func titleField(color: Color, size: CGFloat, lineLimit: Int = 1) -> some View {
+        // At rest the title must be the same Text as WidgetCardView renders —
+        // a TextField has its own metrics and would shift the row on snap. The
+        // field only shows (as a layout-neutral overlay) while editing.
+        let isEditing = isTitleFocused.wrappedValue || item.title.isEmpty
+
+        return Text(item.title.isEmpty ? "Event name" : item.title)
             .font(.system(size: size, weight: .bold, design: .rounded))
             .foregroundStyle(color)
-            .tint(color)
-            .submitLabel(.done)
-            .focused(isTitleFocused)
-            .lineLimit(1)
-            .minimumScaleFactor(0.5)
-            .textFieldStyle(.plain)
-            .frame(maxWidth: maxWidth, alignment: .leading)
+            .lineLimit(lineLimit)
+            .minimumScaleFactor(0.55)
+            .opacity(isEditing ? 0 : 1)
+            .padding(.trailing, isEditing ? 3 : 0)
+            .overlay(alignment: .topLeading) {
+                TextField("Event name", text: $item.title)
+                    .font(.system(size: size, weight: .bold, design: .rounded))
+                    .foregroundStyle(color)
+                    .tint(color)
+                    .submitLabel(.done)
+                    .focused(isTitleFocused)
+                    .lineLimit(1)
+                    .textFieldStyle(.plain)
+                    .opacity(isEditing ? 1 : 0)
+            }
             .contentShape(Rectangle())
             .onTapGesture {
                 Haptics.selection()
+                isTitleFocused.wrappedValue = true
             }
     }
 
-    private func dateButton(_ text: String, color: Color, size: CGFloat, alignment: Alignment = .leading) -> some View {
+    private func dateButton(_ text: String, color: Color, size: CGFloat, weight: Font.Weight = .bold, alignment: Alignment = .leading, minScale: CGFloat = 0.45, fillWidth: Bool = true, monospacedDigit: Bool = false) -> some View {
         Button {
             onDateTap()
         } label: {
-            Text(text)
-                .font(.system(size: size, weight: .bold, design: .rounded))
+            let label = Text(text)
+                .font(.system(size: size, weight: weight, design: .rounded))
+            (monospacedDigit ? label.monospacedDigit() : label)
                 .foregroundStyle(color)
                 .lineLimit(1)
-                .minimumScaleFactor(0.45)
-                .frame(maxWidth: .infinity, alignment: alignment)
+                .minimumScaleFactor(minScale)
+                .frame(maxWidth: fillWidth ? .infinity : nil, alignment: alignment)
         }
         .buttonStyle(.plain)
     }
@@ -979,8 +1006,17 @@ private struct EditableEditorPreviewCard: View {
     private var editableRingCard: some View {
         ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading, spacing: 6) {
-                titleField(color: .black, size: 25, maxWidth: 245)
-                dateButton(timeText, color: .black.opacity(0.45), size: 23)
+                HStack(spacing: 8) {
+                    titleField(color: .black, size: 25, lineLimit: 2)
+
+                    if item.showIcon {
+                        Image(systemName: item.icon)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(.black.opacity(0.85))
+                    }
+                }
+
+                dateButton(timeText, color: .black.opacity(0.45), size: 23, minScale: 0.5)
 
                 Spacer(minLength: 0)
             }
@@ -1005,8 +1041,7 @@ private struct EditableEditorPreviewCard: View {
             HStack(alignment: .firstTextBaseline) {
                 titleField(color: .black, size: 30)
                 Spacer(minLength: 8)
-                dateButton(percentageText, color: .black.opacity(0.52), size: 34, alignment: .trailing)
-                    .frame(width: 112)
+                dateButton(percentageText, color: tint, size: 34, weight: .semibold, alignment: .trailing, minScale: 0.6, fillWidth: false, monospacedDigit: true)
             }
 
             Spacer(minLength: 18)
@@ -1043,8 +1078,17 @@ private struct EditableEditorPreviewCard: View {
                 .offset(x: 18, y: -18)
 
             VStack(alignment: .leading, spacing: 10) {
-                titleField(color: .white, size: 30, maxWidth: 250)
-                dateButton(timeText, color: .white.opacity(0.45), size: 28)
+                HStack(spacing: 8) {
+                    titleField(color: .white, size: 30)
+
+                    if item.showIcon {
+                        Image(systemName: item.icon)
+                            .font(.system(size: 26, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.88))
+                    }
+                }
+
+                dateButton(timeText, color: .white.opacity(0.45), size: 28, minScale: 0.48)
                 Spacer(minLength: 0)
             }
             .padding(22)
@@ -1055,15 +1099,17 @@ private struct EditableEditorPreviewCard: View {
     private var editableIconBar: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: 18) {
-                Image(systemName: item.icon)
-                    .font(.system(size: 38, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 68, height: 68)
-                    .background(tint, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                if item.showIcon {
+                    Image(systemName: item.icon)
+                        .font(.system(size: 38, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 68, height: 68)
+                        .background(tint, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
 
                 VStack(alignment: .leading, spacing: 5) {
                     titleField(color: .black, size: 30)
-                    dateButton(timeText, color: .black.opacity(0.45), size: 27)
+                    dateButton(timeText, color: .black.opacity(0.45), size: 27, minScale: 0.48)
                 }
             }
 
