@@ -206,6 +206,7 @@ struct DashboardWidgetView: View {
 
     var body: some View {
         DashboardPanel(family: family, items: entry.items, date: entry.date)
+            .fontDesign(.rounded)
             .containerBackground(.clear, for: .widget)
     }
 }
@@ -339,9 +340,7 @@ private struct DashboardTile: View {
 
     private var background: Color { Color(hex: item.backgroundHex) }
     private var tint: Color { Color(hex: item.tintHex) }
-    private var isDark: Bool {
-        item.backgroundHex.uppercased().hasPrefix("#3") || item.backgroundHex.uppercased().hasPrefix("#4") || item.backgroundHex.uppercased().hasPrefix("#1")
-    }
+    private var isDark: Bool { item.hasDarkBackground }
     private var foreground: Color { isDark ? .white : .black }
     private var secondary: Color { foreground.opacity(isDark ? 0.55 : 0.45) }
 

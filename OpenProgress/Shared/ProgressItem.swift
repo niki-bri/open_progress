@@ -121,7 +121,41 @@ struct ProgressItem: Identifiable, Codable, Hashable {
     }
 }
 
+extension ProgressItem {
+    /// True when the chosen background is dark enough that dark text on it
+    /// would be hard to read, so themes should switch to light text.
+    var hasDarkBackground: Bool {
+        Color.perceivedLuminance(ofHex: backgroundHex) < 0.6
+    }
+}
+
 extension Color {
+    /// Perceived brightness of a hex color on a 0 (black) … 1 (white) scale.
+    static func perceivedLuminance(ofHex hex: String) -> Double {
+        let cleaned = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var value: UInt64 = 0
+        Scanner(string: cleaned).scanHexInt64(&value)
+
+        let red: Double
+        let green: Double
+        let blue: Double
+
+        switch cleaned.count {
+        case 6:
+            red = Double((value >> 16) & 0xFF) / 255
+            green = Double((value >> 8) & 0xFF) / 255
+            blue = Double(value & 0xFF) / 255
+        case 8:
+            red = Double((value >> 24) & 0xFF) / 255
+            green = Double((value >> 16) & 0xFF) / 255
+            blue = Double((value >> 8) & 0xFF) / 255
+        default:
+            return 1
+        }
+
+        return 0.299 * red + 0.587 * green + 0.114 * blue
+    }
+
     init(hex: String) {
         let cleaned = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var value: UInt64 = 0

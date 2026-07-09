@@ -60,10 +60,11 @@ struct ContentView: View {
             .zIndex(2)
         }
         .dynamicTypeSize(.medium)
+        .fontDesign(.rounded)
         .sensoryFeedback(.selection, trigger: selectedFilter)
         .sensoryFeedback(.selection, trigger: sortOption)
         .sheet(item: $editorRoute) { route in
-            EditorView(item: route.item) { saved in
+            EditorView(item: route.item, isNew: route.isNew) { saved in
                 if route.isNew {
                     store.add(saved)
                 } else {
@@ -83,7 +84,7 @@ struct ContentView: View {
                 Text("Events")
                     .font(.system(size: 31, weight: .semibold))
                     .foregroundStyle(.black)
-                    .padding(.top, 66)
+                    .padding(.top, 8)
                     .padding(.horizontal, horizontalPadding)
                     .minimumScaleFactor(0.72)
 
@@ -195,68 +196,13 @@ private struct EventTile: View {
     let size: CGFloat
 
     private var cornerRadius: CGFloat { size * 0.17 }
-    private var contentPadding: CGFloat { max(size * 0.06, 16) }
-    private var titleSize: CGFloat { min(max(size * 0.09, 13), 17) }
-    private var timeSize: CGFloat { min(max(size * 0.092, 14), 18) }
-    private var ringSize: CGFloat { size * 0.25 }
-    private var ringLineWidth: CGFloat { max(size * 0.074, 10) }
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(Color(hex: item.backgroundHex))
-
-            VStack {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(item.title)
-                            .font(.system(size: titleSize, weight: .semibold))
-                            .foregroundStyle(.black)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.72)
-                            .frame(maxWidth: size - (contentPadding * 2), alignment: .leading)
-
-                        Text(item.homeTimeText())
-                            .font(.system(size: timeSize, weight: .medium))
-                            .foregroundStyle(.black.opacity(0.42))
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.66)
-                    }
-
-                    Spacer(minLength: 0)
-                }
-
-                Spacer(minLength: 0)
-
-                HStack {
-                    Spacer(minLength: 0)
-
-                    ProgressRing(progress: item.progress, tint: Color(hex: item.tintHex), lineWidth: ringLineWidth)
-                        .frame(width: ringSize, height: ringSize)
-                }
-            }
-            .padding(contentPadding)
-        }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-    }
-}
-
-private struct ProgressRing: View {
-    let progress: Double
-    let tint: Color
-    var lineWidth: CGFloat = 14
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(tint.opacity(0.62), lineWidth: lineWidth)
-            Circle()
-                .trim(from: 0, to: max(progress, 0.02))
-                .stroke(Color(hex: "#FFDF5A"), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-        }
+        WidgetCardView(item: item, date: .now, compact: true)
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .shadow(color: .black.opacity(0.05), radius: 9, x: 0, y: 4)
     }
 }
 

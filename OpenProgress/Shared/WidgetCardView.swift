@@ -16,6 +16,7 @@ struct WidgetCardView: View {
     private var tint: Color { Color(hex: item.tintHex) }
     private var background: Color { Color(hex: item.backgroundHex) }
     private var progress: Double { item.progress(at: date) }
+    private var primaryText: Color { item.hasDarkBackground ? .white : .black }
 
     var body: some View {
         ZStack {
@@ -75,20 +76,20 @@ struct WidgetCardView: View {
                 HStack(spacing: 8) {
                     Text(item.title)
                         .font(.system(size: compact ? 17 : 25, weight: .bold, design: .rounded))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(primaryText)
                         .lineLimit(compact ? 1 : 2)
                         .minimumScaleFactor(0.55)
 
                     if item.showIcon {
                         Image(systemName: item.icon)
                             .font(.system(size: compact ? 14 : 20, weight: .semibold))
-                            .foregroundStyle(.black.opacity(0.85))
+                            .foregroundStyle(primaryText.opacity(0.85))
                     }
                 }
 
                 Text(item.homeTimeText(at: date).replacingOccurrences(of: "\n", with: " "))
                     .font(.system(size: compact ? 15 : 23, weight: .bold, design: .rounded))
-                    .foregroundStyle(.black.opacity(0.45))
+                    .foregroundStyle(primaryText.opacity(0.45))
                     .lineLimit(compact ? 1 : 2)
                     .minimumScaleFactor(0.5)
 
@@ -115,12 +116,11 @@ struct WidgetCardView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(item.title)
                     .font(.system(size: compact ? 17 : 30, weight: .bold, design: .rounded))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(primaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
                 Spacer(minLength: 8)
                 percentageText
-                    .foregroundStyle(.black.opacity(0.52))
             }
 
             Spacer(minLength: compact ? 8 : 18)
@@ -197,13 +197,13 @@ struct WidgetCardView: View {
                 VStack(alignment: .leading, spacing: compact ? 2 : 5) {
                     Text(item.title)
                         .font(.system(size: compact ? 18 : 30, weight: .bold, design: .rounded))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(primaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.55)
 
                     Text(item.homeTimeText(at: date).replacingOccurrences(of: "\n", with: " "))
                         .font(.system(size: compact ? 15 : 27, weight: .bold, design: .rounded))
-                        .foregroundStyle(.black.opacity(0.45))
+                        .foregroundStyle(primaryText.opacity(0.45))
                         .lineLimit(1)
                         .minimumScaleFactor(0.48)
                 }
@@ -213,7 +213,7 @@ struct WidgetCardView: View {
 
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.black.opacity(0.12))
+                    Capsule().fill(primaryText.opacity(0.14))
                     Capsule().fill(tint).frame(width: max(proxy.size.width * progress, compact ? 10 : 18))
                 }
             }

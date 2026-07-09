@@ -11,17 +11,29 @@ struct EditorView: View {
     @State private var focusedThemeIndex: Int
     @State private var themePageOffset: CGFloat = 0
     @State private var isThemePaging = false
+    @State private var pendingDateStep: Bool
+    @State private var hasAutoFocusedTitle = false
     @GestureState private var themeDragOffset: CGFloat = 0
+
+    @State private var activeColorTarget: ColorTarget?
 
     let onSave: (ProgressItem) -> Void
 
-    private let colors = ["#D14C40", "#18A999", "#1D9BF0", "#8B5CF6", "#F59E0B", "#111827"]
-    private let backgrounds = ["#8F959E", "#F25549", "#D9F6EE", "#DDF0FF", "#F2FCEB", "#F8F5FF", "#F9FAFB"]
-    private let icons = ["arrow.down", "arrow.up", "timer", "calendar", "gift.fill", "airplane.departure", "heart.fill", "book.fill", "bolt.fill", "rocket.fill", "list.bullet.circle"]
+    private let isNewItem: Bool
 
-    init(item: ProgressItem?, onSave: @escaping (ProgressItem) -> Void) {
-        let initial = item ?? ProgressItem(
-            title: "Event name",
+    // 8 hue families (columns) × 5 tints (saturated at top, pale at bottom),
+    // stored row-major for the LazyVGrid. Column 6 is a neutral black→white ramp.
+    private static let paletteColors: [String] = [
+        "#3F7E70", "#D24B3C", "#D2971E", "#1E3E8E", "#3B332D", "#111111", "#7A5AF0", "#2F6E86",
+        "#5E9C8D", "#E06F59", "#E4AC33", "#2E6EB2", "#5B4E43", "#33404F", "#B9A6F2", "#56A8C5",
+        "#87B8AC", "#EA9584", "#EFC65F", "#3F92D9", "#7D7266", "#6B7280", "#C1408F", "#46C7BE",
+        "#B1D1C8", "#F2B8AB", "#F0D88D", "#82BCE8", "#A89E93", "#B7BCC4", "#EE5FBE", "#43C065",
+        "#D8E7E2", "#F8D7CE", "#F6E8BC", "#B8DAF3", "#CFC8BE", "#FFFFFF", "#F1863E", "#F2C43C"
+    ]
+
+    init(item: ProgressItem?, isNew: Bool = false, onSave: @escaping (ProgressItem) -> Void) {
+        var initial = item ?? ProgressItem(
+            title: "",
             icon: "arrow.down",
             startDate: .now,
             endDate: Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now,
@@ -29,8 +41,15 @@ struct EditorView: View {
             backgroundHex: "#8F959E",
             style: .aqua
         )
+        // A new event starts nameless so the auto-focused field shows its
+        // placeholder and the user can type immediately.
+        if isNew {
+            initial.title = ""
+        }
         _draft = State(initialValue: initial)
         _focusedThemeIndex = State(initialValue: Self.themeIndex(for: initial.style))
+        _pendingDateStep = State(initialValue: isNew)
+        isNewItem = isNew
         self.onSave = onSave
     }
 
@@ -45,6 +64,7 @@ struct EditorView: View {
             }
         }
         .dynamicTypeSize(.medium)
+        .fontDesign(.rounded)
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .safeAreaInset(edge: .top) {
             topBar
@@ -54,12 +74,23 @@ struct EditorView: View {
                 .background(Color(hex: "#F2F2F7").opacity(0.94))
         }
         .sheet(isPresented: $showingDateEditor) {
-            DateCalendarSheet(item: $draft, kindLabel: kindLabel) {
+            DateCalendarSheet(item: $draft) {
                 normalizeDates()
                 showingDateEditor = false
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(32)
+            .presentationBackground(Color(hex: "#F2F2F7"))
+        }
+        .sheet(item: $activeColorTarget) { target in
+            ColorGridPickerSheet(
+                title: target.title,
+                selection: colorBinding(for: target),
+                colors: Self.paletteColors
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
             .presentationCornerRadius(32)
             .presentationBackground(Color(hex: "#F2F2F7"))
         }
@@ -69,12 +100,28 @@ struct EditorView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             keyboardHeight = 0
         }
+        .onAppear {
+            guard isNewItem, !hasAutoFocusedTitle else { return }
+            hasAutoFocusedTitle = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                guard pendingDateStep else { return }
+                isTitleFocused = true
+            }
+        }
+        .onChange(of: isTitleFocused) { _, focused in
+            guard !focused, pendingDateStep else { return }
+            pendingDateStep = false
+            if !showingDateEditor {
+                showingDateEditor = true
+            }
+        }
     }
 
     private var topBar: some View {
         HStack(spacing: 14) {
             Button {
                 Haptics.impact(.light)
+                pendingDateStep = false
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
@@ -238,6 +285,7 @@ struct EditorView: View {
         }
 
         Haptics.selection()
+        pendingDateStep = false
         isTitleFocused = false
         isThemePaging = true
 
@@ -266,6 +314,7 @@ struct EditorView: View {
         let newIndex = Self.wrappedThemeIndex(index)
         guard focusedThemeIndex != newIndex else { return }
         Haptics.selection()
+        pendingDateStep = false
         isTitleFocused = false
         withTransaction(Transaction(animation: nil)) {
             focusedThemeIndex = newIndex
@@ -300,7 +349,6 @@ struct EditorView: View {
     private var editorControlsPanel: some View {
         VStack(spacing: 14) {
             eventKindCard
-            dateDetailsCard
             designPanel
         }
     }
@@ -316,12 +364,14 @@ struct EditorView: View {
         let isSelected = draft.icon == iconValue
 
         return Button {
+            guard draft.icon != iconValue else { return }
             Haptics.selection()
             withAnimation(.spring(response: 0.24, dampingFraction: 0.88)) {
                 draft.icon = iconValue
-                if iconValue == "arrow.up", draft.endDate <= Date() {
-                    draft.endDate = Calendar.current.date(byAdding: .day, value: 365, to: .now) ?? .now
-                } else if iconValue == "arrow.down", draft.endDate <= draft.startDate {
+                if iconValue == "arrow.up", draft.endDate > Date() {
+                    draft.endDate = .now
+                    draft.startDate = Calendar.current.date(byAdding: .day, value: -7, to: .now) ?? .now
+                } else if iconValue == "arrow.down", draft.endDate <= Date() {
                     draft.startDate = .now
                     draft.endDate = Calendar.current.date(byAdding: .day, value: 30, to: .now) ?? .now
                 }
@@ -348,28 +398,54 @@ struct EditorView: View {
     }
 
     private var designPanel: some View {
-        VStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 14) {
-                    iconTile("paintpalette.fill")
+        VStack(spacing: 0) {
+            colorRow(target: .tint, icon: "textformat", value: draft.tintHex)
 
-                    Text("Palette")
-                        .font(.system(size: 19, weight: .regular))
-                        .foregroundStyle(.black)
-                }
+            Divider()
+                .padding(.leading, 70)
 
-                HStack(spacing: 12) {
-                    ForEach(Array(backgrounds.prefix(4)), id: \.self) { value in
-                        PaletteSwatch(value: value, isSelected: draft.backgroundHex == value) {
-                            Haptics.selection()
-                            draft.backgroundHex = value
-                        }
+            colorRow(target: .background, icon: "paintpalette.fill", value: draft.backgroundHex)
+        }
+        .editorCard(cornerRadius: 24)
+    }
+
+    private func colorRow(target: ColorTarget, icon: String, value: String) -> some View {
+        Button {
+            Haptics.selection()
+            pendingDateStep = false
+            isTitleFocused = false
+            activeColorTarget = target
+        } label: {
+            HStack(spacing: 14) {
+                iconTile(icon)
+
+                Text(target.title)
+                    .font(.system(size: 19, weight: .regular))
+                    .foregroundStyle(.black)
+
+                Spacer(minLength: 8)
+
+                Circle()
+                    .fill(Color(hex: value))
+                    .frame(width: 30, height: 30)
+                    .overlay {
+                        Circle().stroke(Color.black.opacity(0.12), lineWidth: 1)
                     }
-                }
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.black.opacity(0.28))
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 14)
             .padding(.vertical, 14)
-            .editorCard()
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func colorBinding(for target: ColorTarget) -> Binding<String> {
+        switch target {
+        case .tint: return $draft.tintHex
+        case .background: return $draft.backgroundHex
         }
     }
 
@@ -377,94 +453,6 @@ struct EditorView: View {
         var copy = draft
         copy.style = style
         return copy
-    }
-
-    private var dateDetailsCard: some View {
-        VStack(spacing: 0) {
-            Button {
-                openDateEditor()
-            } label: {
-                HStack(spacing: 14) {
-                    iconTile("calendar")
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(formattedDate(draft.endDate))
-                            .font(.system(size: 19, weight: .semibold))
-                            .foregroundStyle(.black)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-
-                        Text(kindLabel)
-                            .font(.system(size: 15, weight: .regular))
-                            .foregroundStyle(.black.opacity(0.45))
-                            .lineLimit(1)
-                    }
-
-                    Spacer(minLength: 8)
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.32))
-                        .frame(width: 34, height: 34)
-                        .background(Color.black.opacity(0.08), in: Circle())
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
-            }
-            .buttonStyle(.plain)
-
-            Divider()
-
-            VStack(spacing: 14) {
-                HStack(alignment: .top, spacing: 22) {
-                    metric(title: "Start", value: startText)
-                    metric(title: "Total", value: totalText)
-                }
-
-                HStack(alignment: .top, spacing: 22) {
-                    metric(title: "Elapsed", value: elapsedText)
-                    metric(title: "Remaining", value: remainingText)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.top, 14)
-            .padding(.bottom, 16)
-        }
-        .editorCard(cornerRadius: 24)
-    }
-
-    private var kindLabel: String {
-        switch draft.icon {
-        case "arrow.up":
-            return "Time since"
-        case "timer":
-            return "Timer"
-        case "gift.fill":
-            return "Birthday"
-        case "calendar":
-            return "Imported event"
-        case "list.bullet.circle":
-            return "Imported reminder"
-        default:
-            return "Countdown"
-        }
-    }
-
-    private var startText: String {
-        let formatted = formattedDate(draft.startDate)
-        return Calendar.current.isDateInToday(draft.startDate) ? "Today, \(formatted)" : formatted
-    }
-
-    private var totalText: String {
-        durationText(from: draft.startDate, to: draft.endDate, compact: false)
-    }
-
-    private var elapsedText: String {
-        durationText(from: draft.startDate, to: min(Date(), draft.endDate), compact: true)
-    }
-
-    private var remainingText: String {
-        durationText(from: Date(), to: draft.endDate, compact: true)
     }
 
     private func iconTile(_ systemImage: String) -> some View {
@@ -475,30 +463,16 @@ struct EditorView: View {
             .background(Color(hex: "#EEF0F7"), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    private func metric(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title)
-                .font(.system(size: 15, weight: .regular))
-                .foregroundStyle(.black.opacity(0.45))
-                .lineLimit(1)
-
-            Text(value)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.black.opacity(0.52))
-                .lineLimit(1)
-                .minimumScaleFactor(0.68)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
     private func openDateEditor() {
         Haptics.selection()
+        pendingDateStep = false
         isTitleFocused = false
         showingDateEditor = true
     }
 
     private func saveDraft() {
         Haptics.impact(.medium)
+        pendingDateStep = false
         normalizeDates()
 
         var saved = draft
@@ -525,42 +499,6 @@ struct EditorView: View {
         guard draft.endDate <= draft.startDate else { return }
         draft.endDate = Calendar.current.date(byAdding: .day, value: 1, to: draft.startDate) ?? draft.startDate
     }
-
-    private func formattedDate(_ date: Date) -> String {
-        Self.dateFormatter.string(from: date)
-    }
-
-    private func durationText(from start: Date, to end: Date, compact: Bool) -> String {
-        let seconds = max(end.timeIntervalSince(start), 0)
-        let days = Int(seconds / 86_400)
-        let hours = Int(seconds.truncatingRemainder(dividingBy: 86_400) / 3_600)
-        let minutes = Int(seconds.truncatingRemainder(dividingBy: 3_600) / 60)
-        let remainingSeconds = Int(seconds.truncatingRemainder(dividingBy: 60))
-
-        if !compact {
-            if days > 0 { return "\(days) \(days == 1 ? "day" : "days")" }
-            if hours > 0 { return "\(hours) \(hours == 1 ? "hour" : "hours")" }
-            return "\(minutes) min"
-        }
-
-        if days > 0 {
-            return "\(days)d \(hours)h \(minutes)m"
-        }
-        if hours > 0 {
-            return "\(hours)h \(minutes)m \(remainingSeconds)s"
-        }
-        if minutes > 0 {
-            return "\(minutes)m \(remainingSeconds)s"
-        }
-        return "\(remainingSeconds)s"
-    }
-
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale.current
-        formatter.dateFormat = "d. MMM yyyy"
-        return formatter
-    }()
 }
 
 private struct ThemePageSlot: Identifiable {
@@ -572,7 +510,6 @@ private struct DateCalendarSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @Binding var item: ProgressItem
-    let kindLabel: String
     let onDone: () -> Void
 
     @State private var displayedMonth: Date
@@ -584,11 +521,27 @@ private struct DateCalendarSheet: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
     private let weekdaySymbols = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 
-    init(item: Binding<ProgressItem>, kindLabel: String, onDone: @escaping () -> Void) {
+    init(item: Binding<ProgressItem>, onDone: @escaping () -> Void) {
         _item = item
-        self.kindLabel = kindLabel
         self.onDone = onDone
         _displayedMonth = State(initialValue: Calendar.current.monthStart(for: item.wrappedValue.endDate))
+    }
+
+    private var kindLabel: String {
+        switch item.icon {
+        case "arrow.up":
+            return "Time since"
+        case "timer":
+            return "Timer"
+        case "gift.fill":
+            return "Birthday"
+        case "calendar":
+            return "Imported event"
+        case "list.bullet.circle":
+            return "Imported reminder"
+        default:
+            return "Countdown"
+        }
     }
 
     var body: some View {
@@ -609,6 +562,7 @@ private struct DateCalendarSheet: View {
             .scrollIndicators(.hidden)
         }
         .dynamicTypeSize(.medium)
+        .fontDesign(.rounded)
         .safeAreaInset(edge: .top) {
             calendarTopBar
                 .padding(.horizontal, 16)
@@ -857,7 +811,7 @@ private struct DateCalendarSheet: View {
         } label: {
             Text("\(calendar.component(.day, from: date))")
                 .font(.system(size: 23, weight: .regular))
-                .foregroundStyle(isSelected || isToday ? blue : (isPast ? .black.opacity(0.18) : .black))
+                .foregroundStyle(isSelected || isToday ? blue : (isPast ? .black.opacity(0.45) : .black))
                 .frame(width: 44, height: 44)
                 .background {
                     if isSelected {
@@ -914,6 +868,17 @@ private struct DateCalendarSheet: View {
         if item.endDate <= item.startDate {
             item.startDate = calendar.date(byAdding: .day, value: -7, to: item.endDate) ?? item.startDate
         }
+
+        // A day in the past means the event already happened — count up from
+        // it; a future day counts down to it. Picking today keeps the kind.
+        guard item.icon == "arrow.up" || item.icon == "arrow.down" else { return }
+        let today = calendar.startOfDay(for: Date())
+        let pickedDay = calendar.startOfDay(for: item.endDate)
+        if pickedDay < today {
+            item.icon = "arrow.up"
+        } else if pickedDay > today {
+            item.icon = "arrow.down"
+        }
     }
 
     private static let monthFormatter: DateFormatter = {
@@ -951,6 +916,7 @@ private struct EditableEditorPreviewCard: View {
 
     private var background: Color { Color(hex: item.backgroundHex) }
     private var tint: Color { Color(hex: item.tintHex) }
+    private var primaryText: Color { item.hasDarkBackground ? .white : .black }
     private var progress: Double { item.progress }
     private var percentageText: String { progress.formatted(.percent.precision(.fractionLength(0))) }
     private var timeText: String {
@@ -1007,16 +973,16 @@ private struct EditableEditorPreviewCard: View {
         ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
-                    titleField(color: .black, size: 25, lineLimit: 2)
+                    titleField(color: primaryText, size: 25, lineLimit: 2)
 
                     if item.showIcon {
                         Image(systemName: item.icon)
                             .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(.black.opacity(0.85))
+                            .foregroundStyle(primaryText.opacity(0.85))
                     }
                 }
 
-                dateButton(timeText, color: .black.opacity(0.45), size: 23, minScale: 0.5)
+                dateButton(timeText, color: primaryText.opacity(0.45), size: 23, minScale: 0.5)
 
                 Spacer(minLength: 0)
             }
@@ -1039,7 +1005,7 @@ private struct EditableEditorPreviewCard: View {
     private var editableBlockGrid: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
-                titleField(color: .black, size: 30)
+                titleField(color: primaryText, size: 30)
                 Spacer(minLength: 8)
                 dateButton(percentageText, color: tint, size: 34, weight: .semibold, alignment: .trailing, minScale: 0.6, fillWidth: false, monospacedDigit: true)
             }
@@ -1108,8 +1074,8 @@ private struct EditableEditorPreviewCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
-                    titleField(color: .black, size: 30)
-                    dateButton(timeText, color: .black.opacity(0.45), size: 27, minScale: 0.48)
+                    titleField(color: primaryText, size: 30)
+                    dateButton(timeText, color: primaryText.opacity(0.45), size: 27, minScale: 0.48)
                 }
             }
 
@@ -1117,7 +1083,7 @@ private struct EditableEditorPreviewCard: View {
 
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(.black.opacity(0.12))
+                    Capsule().fill(primaryText.opacity(0.14))
                     Capsule().fill(tint).frame(width: max(proxy.size.width * progress, 18))
                 }
             }
@@ -1138,21 +1104,71 @@ private struct EditorPreviewCard: View {
     }
 }
 
-private struct PaletteSwatch: View {
-    let value: String
-    let isSelected: Bool
-    let action: () -> Void
+private enum ColorTarget: Identifiable, Hashable {
+    case tint
+    case background
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .tint: return "Text color"
+        case .background: return "Background"
+        }
+    }
+}
+
+private struct ColorGridPickerSheet: View {
+    let title: String
+    @Binding var selection: String
+    let colors: [String]
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 8)
 
     var body: some View {
-        Button(action: action) {
-            Circle()
-                .fill(Color(hex: value))
-                .frame(width: 44, height: 44)
-                .overlay {
-                    Circle()
-                        .stroke(isSelected ? Color.black.opacity(0.28) : Color.black.opacity(0.12), lineWidth: isSelected ? 3 : 1)
+        VStack(spacing: 0) {
+            Text(title)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(.black)
+                .padding(.top, 24)
+                .padding(.bottom, 20)
+
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(colors, id: \.self) { hex in
+                        swatch(hex)
+                    }
                 }
-                .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(.horizontal, 20)
+                .padding(.top, 6)
+                .padding(.bottom, 34)
+            }
+            .scrollIndicators(.hidden)
+        }
+        .dynamicTypeSize(.medium)
+        .fontDesign(.rounded)
+    }
+
+    private func swatch(_ hex: String) -> some View {
+        let isSelected = selection.caseInsensitiveCompare(hex) == .orderedSame
+
+        return Button {
+            Haptics.selection()
+            selection = hex
+        } label: {
+            Circle()
+                .fill(Color(hex: hex))
+                .overlay {
+                    Circle().stroke(Color.black.opacity(0.08), lineWidth: 1)
+                }
+                .overlay {
+                    if isSelected {
+                        Circle()
+                            .stroke(Color.black.opacity(0.85), lineWidth: 2.5)
+                            .padding(-4)
+                    }
+                }
+                .aspectRatio(1, contentMode: .fit)
         }
         .buttonStyle(.plain)
     }
