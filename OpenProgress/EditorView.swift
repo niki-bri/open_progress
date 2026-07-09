@@ -514,7 +514,6 @@ private struct DateCalendarSheet: View {
 
     @State private var displayedMonth: Date
     @State private var allDayEvent = true
-    @State private var countAllDays = true
 
     private let calendar = Calendar.current
     private let blue = Color(hex: "#1297F5")
@@ -527,98 +526,71 @@ private struct DateCalendarSheet: View {
         _displayedMonth = State(initialValue: Calendar.current.monthStart(for: item.wrappedValue.endDate))
     }
 
-    private var kindLabel: String {
-        switch item.icon {
-        case "arrow.up":
-            return "Time since"
-        case "timer":
-            return "Timer"
-        case "gift.fill":
-            return "Birthday"
-        case "calendar":
-            return "Imported event"
-        case "list.bullet.circle":
-            return "Imported reminder"
-        default:
-            return "Countdown"
-        }
-    }
-
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             Color(hex: "#F2F2F7")
                 .ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 14) {
                     calendarCard
-                    repeatCard
-                    countDaysCard
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(.top, 74)
                 .padding(.bottom, 34)
             }
             .scrollIndicators(.hidden)
+            .mask {
+                // The calendar dissolves into the background as it scrolls up
+                // under the floating buttons, instead of hitting a solid bar.
+                VStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                        .frame(height: 70)
+                    Color.black
+                }
+            }
+
+            calendarTopBar
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
         }
         .dynamicTypeSize(.medium)
         .fontDesign(.rounded)
-        .safeAreaInset(edge: .top) {
-            calendarTopBar
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-                .padding(.bottom, 10)
-                .background(Color(hex: "#F2F2F7").opacity(0.94))
-        }
     }
 
     private var calendarTopBar: some View {
-        ZStack {
-            HStack {
-                Button {
-                    Haptics.impact(.light)
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 22, weight: .regular))
-                        .foregroundStyle(.black)
-                        .frame(width: 50, height: 50)
-                        .liquidGlass(in: Circle(), interactive: true)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Close")
-
-                Spacer(minLength: 0)
-
-                Button {
-                    Haptics.impact(.medium)
-                    onDone()
-                } label: {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 23, weight: .regular))
-                        .foregroundStyle(.white)
-                        .frame(width: 50, height: 50)
-                        .background {
-                            Circle().fill(Color(hex: "#1297F5").opacity(0.9))
-                        }
-                        .liquidGlass(in: Circle(), tint: Color(hex: "#1297F5").opacity(0.64), interactive: true)
-                        .shadow(color: Color(hex: "#1297F5").opacity(0.25), radius: 22, x: 0, y: 13)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Save date")
-            }
-
-            HStack(spacing: 8) {
-                Text(kindLabel)
-                    .font(.system(size: 20, weight: .medium))
+        HStack {
+            Button {
+                Haptics.impact(.light)
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 22, weight: .regular))
                     .foregroundStyle(.black)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.black.opacity(0.35))
+                    .frame(width: 50, height: 50)
+                    .liquidGlass(in: Circle(), interactive: true)
             }
-            .frame(height: 42)
-            .padding(.horizontal, 18)
-            .liquidGlass(in: Capsule(), interactive: true)
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close")
+
+            Spacer(minLength: 0)
+
+            Button {
+                Haptics.impact(.medium)
+                onDone()
+            } label: {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 23, weight: .regular))
+                    .foregroundStyle(.white)
+                    .frame(width: 50, height: 50)
+                    .background {
+                        Circle().fill(Color(hex: "#1297F5").opacity(0.9))
+                    }
+                    .liquidGlass(in: Circle(), tint: Color(hex: "#1297F5").opacity(0.64), interactive: true)
+                    .shadow(color: Color(hex: "#1297F5").opacity(0.25), radius: 22, x: 0, y: 13)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Save date")
         }
     }
 
@@ -735,69 +707,6 @@ private struct DateCalendarSheet: View {
             .padding(.vertical, 14)
         }
         .editorCard(cornerRadius: 24)
-    }
-
-    private var repeatCard: some View {
-        Button {
-            Haptics.selection()
-        } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "repeat")
-                    .font(.system(size: 21, weight: .semibold))
-                    .foregroundStyle(Color(hex: "#173957"))
-                    .frame(width: 50, height: 50)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(Color.black.opacity(0.07), lineWidth: 1)
-                    }
-
-                Text("Repeat")
-                    .font(.system(size: 20, weight: .regular))
-                    .foregroundStyle(.black)
-
-                Spacer(minLength: 0)
-
-                Text("No repeat")
-                    .font(.system(size: 19, weight: .regular))
-                    .foregroundStyle(.black)
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.black.opacity(0.32))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 14)
-            .editorCard()
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var countDaysCard: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "number")
-                .font(.system(size: 21, weight: .semibold))
-                .foregroundStyle(Color(hex: "#173957"))
-                .frame(width: 50, height: 50)
-                .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.black.opacity(0.07), lineWidth: 1)
-                }
-
-            Text("Count all days")
-                .font(.system(size: 20, weight: .regular))
-                .foregroundStyle(.black)
-
-            Spacer(minLength: 0)
-
-            Toggle("", isOn: $countAllDays)
-                .labelsHidden()
-                .tint(Color(hex: "#34C759"))
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 14)
-        .editorCard()
     }
 
     private func dayButton(for date: Date) -> some View {

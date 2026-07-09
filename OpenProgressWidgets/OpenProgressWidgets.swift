@@ -202,12 +202,15 @@ struct OpenProgressWidgetView: View {
 
 struct DashboardWidgetView: View {
     @Environment(\.widgetFamily) private var family
+    @Environment(\.colorScheme) private var colorScheme
     let entry: DashboardEntry
 
     var body: some View {
         DashboardPanel(family: family, items: entry.items, date: entry.date)
             .fontDesign(.rounded)
-            .containerBackground(.clear, for: .widget)
+            .containerBackground(for: .widget) {
+                colorScheme == .dark ? Color(hex: "#1C1C1E") : .white
+            }
     }
 }
 
@@ -259,20 +262,16 @@ private struct DashboardPanel: View {
     let items: [ProgressItem]
     let date: Date
 
+    @ViewBuilder
     var body: some View {
-        ZStack {
-            Color.white
-
-            switch family {
-            case .systemSmall:
-                smallLayout
-            case .systemMedium:
-                mediumLayout
-            default:
-                largeLayout
-            }
+        switch family {
+        case .systemSmall:
+            smallLayout
+        case .systemMedium:
+            mediumLayout
+        default:
+            largeLayout
         }
-        .clipShape(RoundedRectangle(cornerRadius: ProgressWidgetMetrics.dashboardCornerRadius, style: .continuous))
     }
 
     private var smallLayout: some View {
@@ -299,19 +298,11 @@ private struct DashboardPanel: View {
 
     private var largeLayout: some View {
         VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                DashboardTile(item: item(0), date: date, variant: .large, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
-                DashboardTile(item: item(1), date: date, variant: .large, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
-            }
-
-            HStack(spacing: 4) {
-                DashboardTile(item: item(2), date: date, variant: .small, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
-                DashboardTile(item: item(3), date: date, variant: .small, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
-            }
-
-            HStack(spacing: 4) {
-                DashboardTile(item: item(4), date: date, variant: .small, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
-                DashboardTile(item: item(5), date: date, variant: .small, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
+            ForEach(0..<3, id: \.self) { row in
+                HStack(spacing: 4) {
+                    DashboardTile(item: item(row * 2), date: date, variant: .small, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
+                    DashboardTile(item: item(row * 2 + 1), date: date, variant: .small, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
+                }
             }
         }
         .padding(4)
