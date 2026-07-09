@@ -94,39 +94,18 @@ struct ProgressItem: Identifiable, Codable, Hashable {
     }
 
     func homeTimeText(at date: Date = .now) -> String {
-        let calendar = Calendar.current
-        // The date picker only chooses calendar days, so the countdown is
-        // measured in whole days (midnight to midnight) rather than the raw
-        // interval — otherwise "tomorrow" reads as "23 hrs" whenever the
-        // current time of day is past the event's stored time.
-        let dayDiff = calendar.dateComponents(
-            [.day],
-            from: calendar.startOfDay(for: date),
-            to: calendar.startOfDay(for: endDate)
-        ).day ?? 0
+        let secondsPerDay: TimeInterval = 86_400
+        let interval = endDate.timeIntervalSince(date)
 
-        if date >= endDate {
-            let elapsedDays = max(-dayDiff, 0)
-            if elapsedDays > 0 {
-                return "\(elapsedDays) \(elapsedDays == 1 ? "day" : "days") ago"
-            }
-            let hours = max(calendar.dateComponents([.hour], from: endDate, to: date).hour ?? 0, 0)
-            if hours > 0 {
-                return "\(hours) \(hours == 1 ? "hr" : "hrs") ago"
-            }
-            return "Just now"
+        // Count whole days, rounded down, so an event less than 24h away
+        // (e.g. tomorrow) reads as 0 days rather than being rounded up.
+        if interval < 0 {
+            let days = Int(-interval / secondsPerDay)
+            return "\(days) \(days == 1 ? "day" : "days") ago"
         }
 
-        if dayDiff > 0 {
-            return "In \(dayDiff) \(dayDiff == 1 ? "day" : "days")"
-        }
-
-        // Same calendar day, still upcoming.
-        let hours = max(calendar.dateComponents([.hour], from: date, to: endDate).hour ?? 0, 0)
-        if hours > 0 {
-            return "In \(hours) \(hours == 1 ? "hr" : "hrs")"
-        }
-        return "Today"
+        let days = Int(interval / secondsPerDay)
+        return "In \(days) \(days == 1 ? "day" : "days")"
     }
 }
 
