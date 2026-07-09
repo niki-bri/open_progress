@@ -2,10 +2,10 @@ import SwiftUI
 
 enum ProgressWidgetMetrics {
     static let mediumAspectRatio: CGFloat = 338.0 / 158.0
-    static let cardCornerRadius: CGFloat = 30
-    static let dashboardCornerRadius: CGFloat = 24
-    static let dashboardLargeTileCornerRadius: CGFloat = 20
-    static let dashboardSmallTileCornerRadius: CGFloat = 18
+    static let cardCornerRadius: CGFloat = 34
+    static let dashboardCornerRadius: CGFloat = 30
+    static let dashboardLargeTileCornerRadius: CGFloat = 24
+    static let dashboardSmallTileCornerRadius: CGFloat = 22
 }
 
 struct WidgetCardView: View {

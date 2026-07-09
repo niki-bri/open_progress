@@ -276,20 +276,20 @@ private struct DashboardPanel: View {
 
     private var smallLayout: some View {
         VStack(spacing: 4) {
-            DashboardTile(item: item(0), date: date, variant: .small)
-            DashboardTile(item: item(1), date: date, variant: .small)
+            DashboardTile(item: item(0), date: date, variant: .small, showsRing: false)
+            DashboardTile(item: item(1), date: date, variant: .small, showsRing: false)
         }
         .padding(4)
     }
 
     private var mediumLayout: some View {
         HStack(spacing: 4) {
-            DashboardTile(item: item(0), date: date, variant: .large)
+            DashboardTile(item: item(0), date: date, variant: .large, showsRing: true)
                 .frame(maxWidth: .infinity)
 
             VStack(spacing: 4) {
-                DashboardTile(item: item(1), date: date, variant: .small)
-                DashboardTile(item: item(2), date: date, variant: .small)
+                DashboardTile(item: item(1), date: date, variant: .small, showsRing: false)
+                DashboardTile(item: item(2), date: date, variant: .small, showsRing: false)
             }
             .frame(maxWidth: .infinity)
         }
@@ -299,18 +299,18 @@ private struct DashboardPanel: View {
     private var largeLayout: some View {
         VStack(spacing: 4) {
             HStack(spacing: 4) {
-                DashboardTile(item: item(0), date: date, variant: .large)
-                DashboardTile(item: item(1), date: date, variant: .large)
+                DashboardTile(item: item(0), date: date, variant: .large, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
+                DashboardTile(item: item(1), date: date, variant: .large, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
             }
 
             HStack(spacing: 4) {
-                DashboardTile(item: item(2), date: date, variant: .small)
-                DashboardTile(item: item(3), date: date, variant: .small)
+                DashboardTile(item: item(2), date: date, variant: .small, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
+                DashboardTile(item: item(3), date: date, variant: .small, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
             }
 
             HStack(spacing: 4) {
-                DashboardTile(item: item(4), date: date, variant: .small)
-                DashboardTile(item: item(5), date: date, variant: .small)
+                DashboardTile(item: item(4), date: date, variant: .small, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
+                DashboardTile(item: item(5), date: date, variant: .small, showsRing: true, ringSizeOverride: 46, ringWidthOverride: 9)
             }
         }
         .padding(4)
@@ -333,6 +333,9 @@ private struct DashboardTile: View {
     let item: ProgressItem
     let date: Date
     let variant: Variant
+    let showsRing: Bool
+    var ringSizeOverride: CGFloat?
+    var ringWidthOverride: CGFloat?
 
     private var background: Color { Color(hex: item.backgroundHex) }
     private var tint: Color { Color(hex: item.tintHex) }
@@ -347,9 +350,11 @@ private struct DashboardTile: View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(background)
 
-            dashboardRing
-                .frame(width: ringSize, height: ringSize)
-                .padding(ringPadding)
+            if showsRing {
+                dashboardRing
+                    .frame(width: ringSize, height: ringSize)
+                    .padding(ringPadding)
+            }
 
             VStack(alignment: .leading, spacing: textSpacing) {
                 Text(displayTitle)
@@ -399,8 +404,8 @@ private struct DashboardTile: View {
     }
     private var tilePadding: CGFloat { variant == .large ? 14 : 10 }
     private var ringPadding: CGFloat { variant == .large ? 16 : 10 }
-    private var ringSize: CGFloat { variant == .large ? 64 : 44 }
-    private var ringWidth: CGFloat { variant == .large ? 14 : 9 }
+    private var ringSize: CGFloat { ringSizeOverride ?? (variant == .large ? 64 : 44) }
+    private var ringWidth: CGFloat { ringWidthOverride ?? (variant == .large ? 14 : 9) }
     private var textSpacing: CGFloat { variant == .large ? 5 : 2 }
     private var titleSize: CGFloat { variant == .large ? 19 : 16 }
     private var subtitleSize: CGFloat { variant == .large ? 17 : 14 }

@@ -226,35 +226,45 @@ private struct EventTile: View {
     let size: CGFloat
 
     private var cornerRadius: CGFloat { size * 0.17 }
-    private var contentPadding: CGFloat { max(size * 0.048, 8) }
+    private var contentPadding: CGFloat { max(size * 0.06, 16) }
     private var titleSize: CGFloat { min(max(size * 0.09, 13), 17) }
     private var timeSize: CGFloat { min(max(size * 0.092, 14), 18) }
-    private var ringSize: CGFloat { size * 0.34 }
+    private var ringSize: CGFloat { size * 0.25 }
+    private var ringLineWidth: CGFloat { max(size * 0.074, 10) }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
+        ZStack {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(Color(hex: item.backgroundHex))
 
-            ProgressRing(progress: item.progress, tint: Color(hex: item.tintHex), lineWidth: max(size * 0.07, 10))
-                .frame(width: ringSize, height: ringSize)
-                .padding(contentPadding)
+            VStack {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(item.title)
+                            .font(.system(size: titleSize, weight: .semibold))
+                            .foregroundStyle(.black)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.72)
+                            .frame(maxWidth: size - (contentPadding * 2), alignment: .leading)
 
-                VStack(alignment: .leading, spacing: 6) {
-                Text(item.title)
-                    .font(.system(size: titleSize, weight: .semibold))
-                    .foregroundStyle(.black)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.72)
-                    .frame(maxWidth: size * 0.72, alignment: .leading)
+                        Text(item.homeTimeText())
+                            .font(.system(size: timeSize, weight: .medium))
+                            .foregroundStyle(.black.opacity(0.42))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.66)
+                    }
 
-                Text(item.homeTimeText())
-                    .font(.system(size: timeSize, weight: .medium))
-                    .foregroundStyle(.black.opacity(0.42))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.66)
+                    Spacer(minLength: 0)
+                }
 
                 Spacer(minLength: 0)
+
+                HStack {
+                    Spacer(minLength: 0)
+
+                    ProgressRing(progress: item.progress, tint: Color(hex: item.tintHex), lineWidth: ringLineWidth)
+                        .frame(width: ringSize, height: ringSize)
+                }
             }
             .padding(contentPadding)
         }
