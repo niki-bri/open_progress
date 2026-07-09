@@ -94,26 +94,35 @@ struct ProgressItem: Identifiable, Codable, Hashable {
     }
 
     func homeTimeText(at date: Date = .now) -> String {
+        let calendar = Calendar.current
+        // The date picker only chooses calendar days, so the countdown is
+        // measured in whole days (midnight to midnight) rather than the raw
+        // interval — otherwise "tomorrow" reads as "23 hrs" whenever the
+        // current time of day is past the event's stored time.
+        let dayDiff = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: date),
+            to: calendar.startOfDay(for: endDate)
+        ).day ?? 0
+
         if date >= endDate {
-            let components = Calendar.current.dateComponents([.day, .hour], from: endDate, to: date)
-            let days = max(components.day ?? 0, 0)
-            let hours = max(components.hour ?? 0, 0)
-            if days > 0 {
-                return "\(days) \(days == 1 ? "day" : "days") ago"
+            let elapsedDays = max(-dayDiff, 0)
+            if elapsedDays > 0 {
+                return "\(elapsedDays) \(elapsedDays == 1 ? "day" : "days") ago"
             }
+            let hours = max(calendar.dateComponents([.hour], from: endDate, to: date).hour ?? 0, 0)
             if hours > 0 {
                 return "\(hours) \(hours == 1 ? "hr" : "hrs") ago"
             }
             return "Just now"
         }
 
-        let components = Calendar.current.dateComponents([.day, .hour], from: date, to: endDate)
-        let days = max(components.day ?? 0, 0)
-        let hours = max(components.hour ?? 0, 0)
-
-        if days > 0 {
-            return "In \(days) \(days == 1 ? "day" : "days"),\n\(hours) \(hours == 1 ? "hr" : "hrs")"
+        if dayDiff > 0 {
+            return "In \(dayDiff) \(dayDiff == 1 ? "day" : "days")"
         }
+
+        // Same calendar day, still upcoming.
+        let hours = max(calendar.dateComponents([.hour], from: date, to: endDate).hour ?? 0, 0)
         if hours > 0 {
             return "In \(hours) \(hours == 1 ? "hr" : "hrs")"
         }
