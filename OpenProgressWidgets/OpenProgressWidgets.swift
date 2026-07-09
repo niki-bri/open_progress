@@ -429,7 +429,7 @@ private enum DashboardSamples {
             endDate: Calendar.current.date(byAdding: .day, value: 9, to: .now) ?? .now,
             tintHex: "#63DED7",
             backgroundHex: "#414858",
-            style: .aqua
+            style: .grid
         ),
         ProgressItem(
             title: "This week",
@@ -438,7 +438,7 @@ private enum DashboardSamples {
             endDate: Calendar.current.date(byAdding: .day, value: 2, to: .now) ?? .now,
             tintHex: "#FFB323",
             backgroundHex: "#0EA1D5",
-            style: .aqua
+            style: .glow
         ),
         ProgressItem(
             title: "July",
@@ -447,7 +447,7 @@ private enum DashboardSamples {
             endDate: Calendar.current.date(byAdding: .day, value: 22, to: .now) ?? .now,
             tintHex: "#3BCB6F",
             backgroundHex: "#E9EAE1",
-            style: .aqua
+            style: .retro
         ),
         ProgressItem(
             title: "2026",
@@ -465,7 +465,7 @@ private enum DashboardSamples {
             endDate: Calendar.current.date(byAdding: .day, value: 9, to: .now) ?? .now,
             tintHex: "#63DED7",
             backgroundHex: "#414858",
-            style: .aqua
+            style: .grid
         )
     ]
 }

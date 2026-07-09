@@ -6,14 +6,12 @@ struct EditorView: View {
     @FocusState private var isTitleFocused: Bool
 
     @State private var draft: ProgressItem
-    @State private var selectedPanel: EditorPanel = .date
     @State private var showingDateEditor = false
-    @State private var isNoteExpanded = false
-    @State private var note = ""
-    @State private var showPercentage = false
-    @State private var selectedFontWeight: EditorFontWeight = .regular
-    @State private var direction: DirectionOption = .normal
-    @State private var scrollResetToken = UUID()
+    @State private var keyboardHeight: CGFloat = 0
+    @State private var focusedThemeIndex: Int
+    @State private var themePageOffset: CGFloat = 0
+    @State private var isThemePaging = false
+    @GestureState private var themeDragOffset: CGFloat = 0
 
     let onSave: (ProgressItem) -> Void
 
@@ -32,6 +30,7 @@ struct EditorView: View {
             style: .aqua
         )
         _draft = State(initialValue: initial)
+        _focusedThemeIndex = State(initialValue: Self.themeIndex(for: initial.style))
         self.onSave = onSave
     }
 
@@ -46,16 +45,13 @@ struct EditorView: View {
             }
         }
         .dynamicTypeSize(.medium)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .safeAreaInset(edge: .top) {
             topBar
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 10)
                 .background(Color(hex: "#F2F2F7").opacity(0.94))
-        }
-        .safeAreaInset(edge: .bottom) {
-            bottomControl
-                .padding(.bottom, 12)
         }
         .sheet(isPresented: $showingDateEditor) {
             DateCalendarSheet(item: $draft, kindLabel: kindLabel) {
@@ -67,11 +63,12 @@ struct EditorView: View {
             .presentationCornerRadius(32)
             .presentationBackground(Color(hex: "#F2F2F7"))
         }
-        .sensoryFeedback(.selection, trigger: selectedPanel)
-        .sensoryFeedback(.impact(weight: .light), trigger: isNoteExpanded)
-        .sensoryFeedback(.selection, trigger: showPercentage)
-        .sensoryFeedback(.selection, trigger: selectedFontWeight)
-        .sensoryFeedback(.selection, trigger: direction)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { notification in
+            keyboardHeight = keyboardOverlap(from: notification)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
+        }
     }
 
     private var topBar: some View {
@@ -110,13 +107,29 @@ struct EditorView: View {
     }
 
     private var fixedPreviewArea: some View {
-        VStack(spacing: 0) {
-            EditorPreviewCard(item: draft)
-                .aspectRatio(ProgressWidgetMetrics.mediumAspectRatio, contentMode: .fit)
-                .padding(.horizontal, 16)
+        GeometryReader { proxy in
+            let previewWidth = max(proxy.size.width - 32, 0)
+            let previewHeight = previewWidth / ProgressWidgetMetrics.mediumAspectRatio
+            let pageStride = previewWidth + Self.themeCarouselSpacing
+
+            ZStack(alignment: .top) {
+                HStack(spacing: Self.themeCarouselSpacing) {
+                    ForEach(themePageSlots) { slot in
+                        let style = Self.themeStyles[slot.index]
+                        themePreviewCard(style: style, index: slot.index)
+                            .frame(width: previewWidth, height: previewHeight)
+                            .id(slot.id)
+                    }
+                }
                 .padding(.top, 16)
-                .padding(.bottom, 14)
+                .padding(.bottom, 34)
+                .offset(x: themePageOffset + themeDragOffset)
+                .gesture(themeDragGesture(pageStride: pageStride))
+            }
+            .frame(width: proxy.size.width, height: previewHeight + 54, alignment: .top)
+            .clipped()
         }
+        .frame(height: fixedPreviewHeight)
         .background(Color(hex: "#F2F2F7").opacity(0.97))
         .overlay(alignment: .bottom) {
             LinearGradient(
@@ -127,213 +140,199 @@ struct EditorView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 26)
-            .offset(y: 26)
+            .frame(height: 18)
+            .offset(y: 18)
             .allowsHitTesting(false)
+        }
+        .onChange(of: draft.style) { _, newValue in
+            let index = Self.themeIndex(for: newValue)
+            guard focusedThemeIndex != index else { return }
+            withTransaction(Transaction(animation: nil)) {
+                focusedThemeIndex = index
+            }
         }
         .zIndex(2)
     }
 
+    private static let themeStyles = ProgressStyle.allCases
+    private static let themeCarouselSpacing: CGFloat = 12
+
+    private static func themeIndex(for style: ProgressStyle) -> Int {
+        themeStyles.firstIndex(of: style) ?? 0
+    }
+
+    private var themePageSlots: [ThemePageSlot] {
+        [
+            ThemePageSlot(id: -1, index: Self.wrappedThemeIndex(focusedThemeIndex - 1)),
+            ThemePageSlot(id: 0, index: Self.wrappedThemeIndex(focusedThemeIndex)),
+            ThemePageSlot(id: 1, index: Self.wrappedThemeIndex(focusedThemeIndex + 1))
+        ]
+    }
+
+    private static func wrappedThemeIndex(_ index: Int) -> Int {
+        guard !themeStyles.isEmpty else { return 0 }
+        return (index % themeStyles.count + themeStyles.count) % themeStyles.count
+    }
+
+    @ViewBuilder
+    private func themePreviewCard(style: ProgressStyle, index: Int) -> some View {
+        if index == focusedThemeIndex {
+            EditableEditorPreviewCard(
+                item: $draft,
+                isTitleFocused: $isTitleFocused,
+                onDateTap: openDateEditor
+            )
+        } else {
+            EditorPreviewCard(item: previewItem(for: style))
+                .overlay {
+                    RoundedRectangle(cornerRadius: ProgressWidgetMetrics.cardCornerRadius, style: .continuous)
+                        .stroke(Color.white.opacity(0.7), lineWidth: 1)
+                }
+                .onTapGesture {
+                    selectTheme(index)
+                }
+        }
+    }
+
+    private func themeDragGesture(pageStride: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 6)
+            .updating($themeDragOffset) { value, state, _ in
+                guard !isThemePaging else { return }
+                state = max(min(value.translation.width, pageStride), -pageStride)
+            }
+            .onEnded { value in
+                finishThemeDrag(value, pageStride: pageStride)
+            }
+    }
+
+    private func finishThemeDrag(_ value: DragGesture.Value, pageStride: CGFloat) {
+        guard !isThemePaging else { return }
+
+        let threshold = pageStride * 0.22
+        let predicted = value.predictedEndTranslation.width
+        let translation = value.translation.width
+        let direction: Int
+
+        if predicted < -threshold || translation < -threshold {
+            direction = 1
+        } else if predicted > threshold || translation > threshold {
+            direction = -1
+        } else {
+            direction = 0
+        }
+
+        guard direction != 0 else {
+            withAnimation(.snappy(duration: 0.18)) {
+                themePageOffset = 0
+            }
+            return
+        }
+
+        isThemePaging = true
+        withAnimation(.snappy(duration: 0.2)) {
+            themePageOffset = CGFloat(-direction) * pageStride
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            let newIndex = Self.wrappedThemeIndex(focusedThemeIndex + direction)
+            withTransaction(Transaction(animation: nil)) {
+                focusedThemeIndex = newIndex
+                draft.style = Self.themeStyles[newIndex]
+                themePageOffset = 0
+            }
+            isThemePaging = false
+            Haptics.selection()
+            isTitleFocused = false
+        }
+    }
+
+    private func selectTheme(_ index: Int) {
+        let newIndex = Self.wrappedThemeIndex(index)
+        guard focusedThemeIndex != newIndex else { return }
+        Haptics.selection()
+        isTitleFocused = false
+        withTransaction(Transaction(animation: nil)) {
+            focusedThemeIndex = newIndex
+            draft.style = Self.themeStyles[newIndex]
+            themePageOffset = 0
+        }
+    }
+
     private var panelScroll: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                Color.clear
-                    .frame(height: 0)
-                    .id(scrollResetToken)
-
-                Group {
-                    switch selectedPanel {
-                    case .date:
-                        datePanel
-                    case .measure:
-                        measurePanel
-                    case .paint:
-                        paintPanel
-                    }
-                }
+        ScrollView {
+            editorControlsPanel
                 .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 156)
+                .padding(.top, 30)
+                .padding(.bottom, 42 + keyboardHeight)
                 .transition(.opacity)
-            }
-            .scrollIndicators(.hidden)
-            .mask {
-                VStack(spacing: 0) {
-                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
-                        .frame(height: 22)
-                    Color.black
-                }
-            }
-            .onChange(of: selectedPanel) { _, _ in
-                scrollResetToken = UUID()
-                DispatchQueue.main.async {
-                    withAnimation(.easeOut(duration: 0.18)) {
-                        proxy.scrollTo(scrollResetToken, anchor: .top)
-                    }
-                }
-            }
         }
-        .animation(.spring(response: 0.32, dampingFraction: 0.88), value: selectedPanel)
-    }
-
-    private var datePanel: some View {
-        VStack(spacing: 14) {
-            titleField
-            dateDetailsCard
-            noteCard
-        }
-    }
-
-    private var measurePanel: some View {
-        VStack(spacing: 14) {
+        .scrollIndicators(.hidden)
+        .mask {
             VStack(spacing: 0) {
-                HStack(spacing: 14) {
-                    iconTile("ruler")
-
-                    Text("Show time")
-                        .font(.system(size: 19, weight: .regular))
-                        .foregroundStyle(.black)
-
-                    Spacer(minLength: 10)
-
-                    HStack(spacing: 0) {
-                        Button {
-                            Haptics.selection()
-                            showPercentage = false
-                        } label: {
-                            Image(systemName: "clock.fill")
-                                .font(.system(size: 17, weight: .semibold))
-                                .frame(width: 50, height: 34)
-                                .foregroundStyle(showPercentage ? .black.opacity(0.45) : .white)
-                                .background {
-                                    if !showPercentage {
-                                        Capsule().fill(.black)
-                                    }
-                                }
-                        }
-
-                        Button {
-                            Haptics.selection()
-                            showPercentage = true
-                        } label: {
-                            Text("%")
-                                .font(.system(size: 22, weight: .regular))
-                                .frame(width: 50, height: 34)
-                                .foregroundStyle(showPercentage ? .white : .black)
-                                .background {
-                                    if showPercentage {
-                                        Capsule().fill(.black)
-                                    }
-                                }
-                        }
-                    }
-                    .padding(3)
-                    .background(Color.black.opacity(0.08), in: Capsule())
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 14)
-
-                Divider()
-
-                HStack(alignment: .top, spacing: 14) {
-                    iconTile("slider.horizontal.3")
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Time units")
-                            .font(.system(size: 19, weight: .regular))
-                            .foregroundStyle(.black)
-
-                        Text("Units to show as text. Updates in real time on your widgets.")
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundStyle(.black.opacity(0.45))
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    Spacer(minLength: 8)
-
-                    Text("Live format")
-                        .font(.system(size: 18, weight: .regular))
-                        .foregroundStyle(.black)
-                        .lineLimit(1)
-
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.38))
-                        .padding(.top, 4)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 14)
+                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 8)
+                Color.black
             }
-            .editorCard()
-
-            Button {
-                Haptics.selection()
-            } label: {
-                HStack(spacing: 14) {
-                    iconTile("textformat.size")
-
-                    Text("Accessory indicator")
-                        .font(.system(size: 19, weight: .regular))
-                        .foregroundStyle(.black)
-
-                    Spacer(minLength: 8)
-
-                    Text("... left")
-                        .font(.system(size: 18, weight: .regular))
-                        .foregroundStyle(.black)
-
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.38))
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 14)
-                .editorCard()
-            }
-            .buttonStyle(.plain)
         }
     }
 
-    private var paintPanel: some View {
+    private var fixedPreviewHeight: CGFloat {
+        let width = max(UIScreen.main.bounds.width - 32, 0)
+        return (width / ProgressWidgetMetrics.mediumAspectRatio) + 54
+    }
+
+    private var editorControlsPanel: some View {
         VStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(spacing: 14) {
-                    iconTile("theatermasks.fill")
+            eventKindCard
+            dateDetailsCard
+            designPanel
+        }
+    }
 
-                    Text("Theme")
-                        .font(.system(size: 19, weight: .regular))
-                        .foregroundStyle(.black)
+    private var eventKindCard: some View {
+        HStack(spacing: 12) {
+            kindButton(title: "Countdown", systemImage: "arrow.down", iconValue: "arrow.down")
+            kindButton(title: "Count up", systemImage: "arrow.up", iconValue: "arrow.up")
+        }
+    }
 
-                    Spacer(minLength: 8)
+    private func kindButton(title: String, systemImage: String, iconValue: String) -> some View {
+        let isSelected = draft.icon == iconValue
 
-                    Text("\(draft.style.title) Style")
-                        .font(.system(size: 19, weight: .regular))
-                        .foregroundStyle(.black)
+        return Button {
+            Haptics.selection()
+            withAnimation(.spring(response: 0.24, dampingFraction: 0.88)) {
+                draft.icon = iconValue
+                if iconValue == "arrow.up", draft.endDate <= Date() {
+                    draft.endDate = Calendar.current.date(byAdding: .day, value: 365, to: .now) ?? .now
+                } else if iconValue == "arrow.down", draft.endDate <= draft.startDate {
+                    draft.startDate = .now
+                    draft.endDate = Calendar.current.date(byAdding: .day, value: 30, to: .now) ?? .now
                 }
-
-                ScrollView(.horizontal) {
-                    HStack(spacing: 18) {
-                        ForEach(ProgressStyle.allCases) { style in
-                            Button {
-                                Haptics.selection()
-                                draft.style = style
-                            } label: {
-                                ThemePreviewCard(item: draft, style: style, isSelected: draft.style == style)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, 52)
-                    .padding(.bottom, 8)
-                }
-                .scrollIndicators(.hidden)
-                .scrollClipDisabled()
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 14)
-            .editorCard()
+        } label: {
+            HStack(spacing: 9) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 14, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 16, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+            .foregroundStyle(isSelected ? Color(hex: "#1297F5") : Color.black.opacity(0.52))
+            .frame(maxWidth: .infinity)
+            .frame(height: 46)
+            .background(isSelected ? Color(hex: "#E4F2FF") : .white, in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(isSelected ? Color(hex: "#1297F5").opacity(0.28) : Color.black.opacity(0.05), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
 
+    private var designPanel: some View {
+        VStack(spacing: 14) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 14) {
                     iconTile("paintpalette.fill")
@@ -344,18 +343,6 @@ struct EditorView: View {
                 }
 
                 HStack(spacing: 12) {
-                    Button {
-                        Haptics.selection()
-                    } label: {
-                        Label("Add image", systemImage: "photo.badge.plus")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(Color(hex: "#1297F5"))
-                            .frame(height: 44)
-                            .padding(.horizontal, 18)
-                            .background(Color(hex: "#1297F5").opacity(0.12), in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-
                     ForEach(Array(backgrounds.prefix(4)), id: \.self) { value in
                         PaletteSwatch(value: value, isSelected: draft.backgroundHex == value) {
                             Haptics.selection()
@@ -367,79 +354,19 @@ struct EditorView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 14)
             .editorCard()
-
-            Button {
-                Haptics.selection()
-                selectedFontWeight = selectedFontWeight.next
-            } label: {
-                HStack(spacing: 14) {
-                    iconTile("textformat")
-
-                    Text("Font")
-                        .font(.system(size: 19, weight: .regular))
-                        .foregroundStyle(.black)
-
-                    Spacer(minLength: 8)
-
-                    Text(selectedFontWeight.title)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.black)
-                        .frame(width: 138, height: 46)
-                        .background(Color.black.opacity(0.06), in: Capsule())
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 14)
-                .editorCard()
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                Haptics.selection()
-                direction = direction.next
-            } label: {
-                HStack(spacing: 14) {
-                    iconTile("arrow.triangle.2.circlepath")
-
-                    Text(direction.title)
-                        .font(.system(size: 19, weight: .regular))
-                        .foregroundStyle(.black.opacity(0.58))
-
-                    Spacer(minLength: 8)
-
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(.black.opacity(0.48))
-                        .frame(width: 46, height: 38)
-                        .background(Color.black.opacity(0.06), in: Capsule())
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 14)
-                .editorCard()
-            }
-            .buttonStyle(.plain)
         }
     }
 
-    private var titleField: some View {
-        TextField("Event name", text: $draft.title)
-            .font(.system(size: 21, weight: .semibold))
-            .multilineTextAlignment(.center)
-            .foregroundStyle(.black)
-            .tint(Color(hex: "#1297F5"))
-            .focused($isTitleFocused)
-            .submitLabel(.done)
-            .frame(height: 58)
-            .padding(.horizontal, 18)
-            .background(.white, in: RoundedRectangle(cornerRadius: 29, style: .continuous))
-            .shadow(color: .black.opacity(0.02), radius: 12, x: 0, y: 6)
+    private func previewItem(for style: ProgressStyle) -> ProgressItem {
+        var copy = draft
+        copy.style = style
+        return copy
     }
 
     private var dateDetailsCard: some View {
         VStack(spacing: 0) {
             Button {
-                Haptics.selection()
-                selectedPanel = .date
-                showingDateEditor = true
+                openDateEditor()
             } label: {
                 HStack(spacing: 14) {
                     iconTile("calendar")
@@ -488,64 +415,6 @@ struct EditorView: View {
             .padding(.bottom, 16)
         }
         .editorCard(cornerRadius: 24)
-    }
-
-    private var noteCard: some View {
-        VStack(spacing: 0) {
-            Button {
-                Haptics.impact(.light)
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                    isNoteExpanded.toggle()
-                }
-            } label: {
-                HStack(spacing: 14) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 23, weight: .regular))
-                        .foregroundStyle(Color(hex: "#1297F5"))
-                        .frame(width: 44, height: 44)
-                        .background(Color(hex: "#1297F5").opacity(0.10), in: Circle())
-
-                    Text(note.isEmpty ? "Add note" : note)
-                        .font(.system(size: 18, weight: .regular))
-                        .foregroundStyle(Color(hex: "#1297F5"))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
-            }
-            .buttonStyle(.plain)
-
-            if isNoteExpanded {
-                TextEditor(text: $note)
-                    .font(.system(size: 16, weight: .regular))
-                    .scrollContentBackground(.hidden)
-                    .frame(minHeight: 78)
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 14)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .editorCard(cornerRadius: 24)
-    }
-
-    private var bottomControl: some View {
-        Picker("Section", selection: $selectedPanel) {
-            ForEach(EditorPanel.allCases) { panel in
-                Image(systemName: panel.systemImage)
-                    .tag(panel)
-            }
-        }
-        .pickerStyle(.segmented)
-        .frame(width: 236, height: 56)
-        .padding(6)
-        .liquidGlass(in: Capsule(), tint: .white.opacity(0.2), interactive: true)
-        .shadow(color: .black.opacity(0.10), radius: 24, x: 0, y: 12)
-        .onChange(of: selectedPanel) { _, _ in
-            Haptics.selection()
-        }
     }
 
     private var kindLabel: String {
@@ -606,11 +475,10 @@ struct EditorView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func selectPanel(_ panel: EditorPanel) {
+    private func openDateEditor() {
         Haptics.selection()
-        withAnimation(.spring(response: 0.26, dampingFraction: 0.86)) {
-            selectedPanel = panel
-        }
+        isTitleFocused = false
+        showingDateEditor = true
     }
 
     private func saveDraft() {
@@ -623,6 +491,18 @@ struct EditorView: View {
         saved.modifiedAt = Date()
         onSave(saved)
         dismiss()
+    }
+
+    private func keyboardOverlap(from notification: Notification) -> CGFloat {
+        guard
+            let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+            let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene
+        else {
+            return 0
+        }
+
+        let screenHeight = windowScene.screen.bounds.height
+        return max(0, screenHeight - frame.minY)
     }
 
     private func normalizeDates() {
@@ -665,6 +545,11 @@ struct EditorView: View {
         formatter.dateFormat = "d. MMM yyyy"
         return formatter
     }()
+}
+
+private struct ThemePageSlot: Identifiable {
+    let id: Int
+    let index: Int
 }
 
 private struct DateCalendarSheet: View {
@@ -1023,12 +908,35 @@ private struct DateCalendarSheet: View {
     }()
 }
 
-private struct EditorPreviewCard: View {
-    let item: ProgressItem
+private struct EditableEditorPreviewCard: View {
+    @Binding var item: ProgressItem
+    let isTitleFocused: FocusState<Bool>.Binding
+    let onDateTap: () -> Void
 
-    private var cardBackground: Color { Color(hex: item.backgroundHex) }
-    private var ringTint: Color { Color(hex: item.tintHex) }
-    private var title: String { item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Event name" : item.title }
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: ProgressWidgetMetrics.cardCornerRadius, style: .continuous)
+                .fill(background)
+
+            switch item.style {
+            case .aqua:
+                editableRingCard
+            case .grid:
+                editableBlockGrid
+            case .glow:
+                editableGlowPanel
+            case .retro:
+                editableIconBar
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: ProgressWidgetMetrics.cardCornerRadius, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+    }
+
+    private var background: Color { Color(hex: item.backgroundHex) }
+    private var tint: Color { Color(hex: item.tintHex) }
+    private var progress: Double { item.progress }
+    private var percentageText: String { progress.formatted(.percent.precision(.fractionLength(0))) }
     private var timeText: String {
         let raw = item.homeTimeText().replacingOccurrences(of: "\n", with: " ")
         if raw.hasPrefix("In ") {
@@ -1037,69 +945,150 @@ private struct EditorPreviewCard: View {
         return raw
     }
 
-    var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            RoundedRectangle(cornerRadius: ProgressWidgetMetrics.cardCornerRadius, style: .continuous)
-                .fill(cardBackground)
-
-            ZStack {
-                Circle()
-                    .stroke(Color.black.opacity(0.16), lineWidth: 16)
-                Circle()
-                    .trim(from: 0, to: max(item.progress, 0.03))
-                    .stroke(ringTint, style: StrokeStyle(lineWidth: 16, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
+    private func titleField(color: Color, size: CGFloat, maxWidth: CGFloat? = nil) -> some View {
+        TextField("Event name", text: $item.title)
+            .font(.system(size: size, weight: .bold, design: .rounded))
+            .foregroundStyle(color)
+            .tint(color)
+            .submitLabel(.done)
+            .focused(isTitleFocused)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .textFieldStyle(.plain)
+            .frame(maxWidth: maxWidth, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                Haptics.selection()
             }
-            .frame(width: 72, height: 72)
-            .padding(.trailing, 22)
-            .padding(.bottom, 22)
+    }
 
+    private func dateButton(_ text: String, color: Color, size: CGFloat, alignment: Alignment = .leading) -> some View {
+        Button {
+            onDateTap()
+        } label: {
+            Text(text)
+                .font(.system(size: size, weight: .bold, design: .rounded))
+                .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.45)
+                .frame(maxWidth: .infinity, alignment: alignment)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var editableRingCard: some View {
+        ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.62)
-
-                Text(timeText)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.58))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.56)
+                titleField(color: .black, size: 25, maxWidth: 245)
+                dateButton(timeText, color: .black.opacity(0.45), size: 23)
 
                 Spacer(minLength: 0)
             }
-            .padding(.top, 24)
-            .padding(.horizontal, 20)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(22)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+            ZStack {
+                Circle()
+                    .stroke(tint.opacity(0.24), lineWidth: 16)
+                Circle()
+                    .trim(from: 0, to: max(progress, 0.03))
+                    .stroke(tint, style: StrokeStyle(lineWidth: 16, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+            .frame(width: 74, height: 74)
+            .padding(22)
         }
-        .clipShape(RoundedRectangle(cornerRadius: ProgressWidgetMetrics.cardCornerRadius, style: .continuous))
-        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
     }
+
+    private var editableBlockGrid: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                titleField(color: .black, size: 30)
+                Spacer(minLength: 8)
+                dateButton(percentageText, color: .black.opacity(0.52), size: 34, alignment: .trailing)
+                    .frame(width: 112)
+            }
+
+            Spacer(minLength: 18)
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 20), spacing: 7) {
+                ForEach(0..<80, id: \.self) { index in
+                    let filled = Double(index + 1) / 80.0 <= progress
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(filled ? tint : .clear)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .stroke(tint.opacity(0.82), lineWidth: filled ? 0 : 1.6)
+                        }
+                        .aspectRatio(1, contentMode: .fit)
+                }
+            }
+            .frame(maxHeight: 94)
+        }
+        .padding(22)
+    }
+
+    private var editableGlowPanel: some View {
+        ZStack(alignment: .topTrailing) {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [tint.opacity(0.92), Color(hex: "#AA00FF"), tint.opacity(0.72)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 164, height: 116)
+                .blur(radius: 15)
+                .offset(x: 18, y: -18)
+
+            VStack(alignment: .leading, spacing: 10) {
+                titleField(color: .white, size: 30, maxWidth: 250)
+                dateButton(timeText, color: .white.opacity(0.45), size: 28)
+                Spacer(minLength: 0)
+            }
+            .padding(22)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+
+    private var editableIconBar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: 18) {
+                Image(systemName: item.icon)
+                    .font(.system(size: 38, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 68, height: 68)
+                    .background(tint, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 5) {
+                    titleField(color: .black, size: 30)
+                    dateButton(timeText, color: .black.opacity(0.45), size: 27)
+                }
+            }
+
+            Spacer(minLength: 18)
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.black.opacity(0.12))
+                    Capsule().fill(tint).frame(width: max(proxy.size.width * progress, 18))
+                }
+            }
+            .frame(height: 20)
+        }
+        .padding(22)
+    }
+
 }
 
-private struct ThemePreviewCard: View {
+private struct EditorPreviewCard: View {
     let item: ProgressItem
-    let style: ProgressStyle
-    let isSelected: Bool
-
-    private var previewItem: ProgressItem {
-        var copy = item
-        copy.style = style
-        return copy
-    }
 
     var body: some View {
-        VStack(spacing: 8) {
-            EditorPreviewCard(item: previewItem)
-                .aspectRatio(ProgressWidgetMetrics.mediumAspectRatio, contentMode: .fit)
-                .frame(width: 154)
-                .opacity(isSelected ? 1 : 0.45)
-
-            Circle()
-                .fill(isSelected ? .black : .clear)
-                .frame(width: 10, height: 10)
-        }
+        WidgetCardView(item: item, date: .now)
+        .clipShape(RoundedRectangle(cornerRadius: ProgressWidgetMetrics.cardCornerRadius, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
     }
 }
 
@@ -1120,66 +1109,6 @@ private struct PaletteSwatch: View {
                 .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
-    }
-}
-
-private enum EditorPanel: String, CaseIterable, Identifiable {
-    case date
-    case measure
-    case paint
-
-    var id: String { rawValue }
-
-    var systemImage: String {
-        switch self {
-        case .date:
-            return "calendar"
-        case .measure:
-            return "ruler"
-        case .paint:
-            return "paintbrush.pointed.fill"
-        }
-    }
-}
-
-private enum EditorFontWeight: String, CaseIterable {
-    case regular
-    case medium
-    case bold
-
-    var title: String {
-        switch self {
-        case .regular:
-            return "Regular"
-        case .medium:
-            return "Medium"
-        case .bold:
-            return "Bold"
-        }
-    }
-
-    var next: EditorFontWeight {
-        let all = Self.allCases
-        guard let index = all.firstIndex(of: self) else { return .regular }
-        return all[(index + 1) % all.count]
-    }
-}
-
-private enum DirectionOption: String, CaseIterable {
-    case normal
-    case reverse
-
-    var title: String {
-        switch self {
-        case .normal:
-            return "Normal direction"
-        case .reverse:
-            return "Reverse direction"
-        }
-    }
-
-    var next: DirectionOption {
-        self == .normal ? .reverse : .normal
     }
 }
 

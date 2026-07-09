@@ -21,16 +21,14 @@ struct WidgetCardView: View {
         ZStack {
             background
             switch item.style {
-            case .swiss:
-                swiss
-            case .grid:
-                grid
             case .aqua:
-                aqua
+                ringCard
+            case .grid:
+                blockGrid
+            case .glow:
+                glowPanel
             case .retro:
-                retro
-            case .minimal:
-                minimal
+                iconBar
             }
         }
         .containerBackground(background, for: .widget)
@@ -71,115 +69,159 @@ struct WidgetCardView: View {
             .minimumScaleFactor(0.8)
     }
 
-    private var swiss: some View {
-        VStack(alignment: .leading, spacing: compact ? 8 : 12) {
-            header
-            Spacer(minLength: 0)
-            percentageText
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.primary.opacity(0.12))
-                    Capsule().fill(tint).frame(width: max(proxy.size.width * progress, 7))
+    private var ringCard: some View {
+        ZStack(alignment: .bottomTrailing) {
+            VStack(alignment: .leading, spacing: compact ? 3 : 6) {
+                HStack(spacing: 8) {
+                    Text(item.title)
+                        .font(.system(size: compact ? 17 : 25, weight: .bold, design: .rounded))
+                        .foregroundStyle(.black)
+                        .lineLimit(compact ? 1 : 2)
+                        .minimumScaleFactor(0.55)
+
+                    if item.showIcon {
+                        Image(systemName: item.icon)
+                            .font(.system(size: compact ? 14 : 20, weight: .semibold))
+                            .foregroundStyle(.black.opacity(0.85))
+                    }
                 }
+
+                Text(item.homeTimeText(at: date).replacingOccurrences(of: "\n", with: " "))
+                    .font(.system(size: compact ? 15 : 23, weight: .bold, design: .rounded))
+                    .foregroundStyle(.black.opacity(0.45))
+                    .lineLimit(compact ? 1 : 2)
+                    .minimumScaleFactor(0.5)
+
+                Spacer(minLength: 0)
             }
-            .frame(height: compact ? 8 : 12)
-            footerText
+            .padding(compact ? 14 : 22)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+            ZStack {
+                Circle()
+                    .stroke(tint.opacity(0.24), lineWidth: compact ? 10 : 16)
+                Circle()
+                    .trim(from: 0, to: max(progress, 0.03))
+                    .stroke(tint, style: StrokeStyle(lineWidth: compact ? 10 : 16, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+            .frame(width: compact ? 54 : 74, height: compact ? 54 : 74)
+            .padding(compact ? 14 : 22)
         }
-        .padding(compact ? 14 : 18)
     }
 
-    private var grid: some View {
-        VStack(alignment: .leading, spacing: compact ? 8 : 10) {
-            header
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: compact ? 5 : 8), spacing: 5) {
-                ForEach(0..<(compact ? 20 : 32), id: \.self) { index in
-                    let filled = Double(index + 1) / Double(compact ? 20 : 32) <= progress
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(filled ? tint : Color.primary.opacity(0.11))
+    private var blockGrid: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(item.title)
+                    .font(.system(size: compact ? 17 : 30, weight: .bold, design: .rounded))
+                    .foregroundStyle(.black)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+                Spacer(minLength: 8)
+                percentageText
+                    .foregroundStyle(.black.opacity(0.52))
+            }
+
+            Spacer(minLength: compact ? 8 : 18)
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: compact ? 4 : 6), count: compact ? 10 : 20), spacing: compact ? 4 : 7) {
+                ForEach(0..<(compact ? 30 : 80), id: \.self) { index in
+                    let filled = Double(index + 1) / Double(compact ? 30 : 80) <= progress
+                    RoundedRectangle(cornerRadius: compact ? 3 : 5, style: .continuous)
+                        .fill(filled ? tint : .clear)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: compact ? 3 : 5, style: .continuous)
+                                .stroke(tint.opacity(0.82), lineWidth: filled ? 0 : 1.6)
+                        }
                         .aspectRatio(1, contentMode: .fit)
                 }
             }
-            Spacer(minLength: 0)
-            HStack {
-                percentageText
-                Spacer()
-                footerText
-            }
+            .frame(maxHeight: compact ? 54 : 94)
         }
-        .padding(compact ? 14 : 18)
+        .padding(compact ? 14 : 22)
     }
 
-    private var aqua: some View {
-        VStack(alignment: .leading, spacing: compact ? 10 : 14) {
-            header
-            Spacer(minLength: 0)
-            ZStack {
-                Circle()
-                    .stroke(tint.opacity(0.18), lineWidth: compact ? 12 : 18)
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(
-                        LinearGradient(colors: [tint.opacity(0.55), tint], startPoint: .topLeading, endPoint: .bottomTrailing),
-                        style: StrokeStyle(lineWidth: compact ? 12 : 18, lineCap: .round)
+    private var glowPanel: some View {
+        ZStack(alignment: .topTrailing) {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [tint.opacity(0.92), Color(hex: "#AA00FF"), tint.opacity(0.72)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-                    .rotationEffect(.degrees(-90))
-                percentageText
-            }
-            .padding(.horizontal, compact ? 18 : 28)
-            footerText
-        }
-        .padding(compact ? 14 : 18)
-    }
+                )
+                .frame(width: compact ? 84 : 164, height: compact ? 70 : 116)
+                .blur(radius: compact ? 8 : 15)
+                .offset(x: compact ? 8 : 18, y: compact ? -8 : -18)
 
-    private var retro: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Circle().fill(Color(hex: "#FF5F57")).frame(width: 10, height: 10)
-                Circle().fill(Color(hex: "#FFBD2E")).frame(width: 10, height: 10)
-                Circle().fill(Color(hex: "#28C840")).frame(width: 10, height: 10)
-                Spacer()
-            }
-            header
-            Spacer(minLength: 0)
-            VStack(alignment: .leading, spacing: 6) {
-                Text(item.statusText(at: date))
-                    .font(.system(size: compact ? 12 : 14, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.primary)
-                GeometryReader { proxy in
-                    ZStack(alignment: .leading) {
-                        Rectangle().fill(Color.white.opacity(0.8))
-                        Rectangle().fill(tint).frame(width: max(proxy.size.width * progress, 5))
+            VStack(alignment: .leading, spacing: compact ? 4 : 10) {
+                HStack(spacing: 8) {
+                    Text(item.title)
+                        .font(.system(size: compact ? 18 : 30, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.55)
+                    if item.showIcon {
+                        Image(systemName: item.icon)
+                            .font(.system(size: compact ? 16 : 26, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.88))
                     }
-                    .border(.black.opacity(0.45), width: 2)
                 }
-                .frame(height: compact ? 18 : 24)
+
+                Text(item.homeTimeText(at: date).replacingOccurrences(of: "\n", with: " "))
+                    .font(.system(size: compact ? 15 : 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.45))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.48)
+
+                Spacer(minLength: 0)
             }
-            percentageText
+            .padding(compact ? 14 : 22)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(compact ? 14 : 18)
     }
 
-    private var minimal: some View {
-        VStack(alignment: .leading, spacing: compact ? 10 : 14) {
-            HStack {
+    private var iconBar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: compact ? 10 : 18) {
                 if item.showIcon {
                     Image(systemName: item.icon)
-                        .font(.system(size: compact ? 24 : 32, weight: .medium))
-                        .foregroundStyle(tint)
+                        .font(.system(size: compact ? 24 : 38, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: compact ? 44 : 68, height: compact ? 44 : 68)
+                        .background(tint, in: RoundedRectangle(cornerRadius: compact ? 13 : 18, style: .continuous))
                 }
-                Spacer()
-                percentageText
+
+                VStack(alignment: .leading, spacing: compact ? 2 : 5) {
+                    Text(item.title)
+                        .font(.system(size: compact ? 18 : 30, weight: .bold, design: .rounded))
+                        .foregroundStyle(.black)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.55)
+
+                    Text(item.homeTimeText(at: date).replacingOccurrences(of: "\n", with: " "))
+                        .font(.system(size: compact ? 15 : 27, weight: .bold, design: .rounded))
+                        .foregroundStyle(.black.opacity(0.45))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.48)
+                }
             }
-            Spacer(minLength: 0)
-            Text(item.title)
-                .font(.system(size: compact ? 17 : 22, weight: .bold, design: .rounded))
-                .foregroundStyle(.primary)
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
-            footerText
+
+            Spacer(minLength: compact ? 12 : 18)
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.black.opacity(0.12))
+                    Capsule().fill(tint).frame(width: max(proxy.size.width * progress, compact ? 10 : 18))
+                }
+            }
+            .frame(height: compact ? 12 : 20)
         }
-        .padding(compact ? 14 : 18)
+        .padding(compact ? 14 : 22)
     }
+
 }
 
 struct AccessoryProgressView: View {

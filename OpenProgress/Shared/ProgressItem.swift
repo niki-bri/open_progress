@@ -2,21 +2,19 @@ import Foundation
 import SwiftUI
 
 enum ProgressStyle: String, CaseIterable, Codable, Identifiable {
-    case swiss
-    case grid
     case aqua
+    case grid
+    case glow
     case retro
-    case minimal
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .swiss: "Swiss"
-        case .grid: "Grid"
-        case .aqua: "Aqua"
-        case .retro: "Retro"
-        case .minimal: "Minimal"
+        case .aqua: "Default"
+        case .grid: "Blocks"
+        case .glow: "Glow"
+        case .retro: "Icon Bar"
         }
     }
 }

@@ -7,7 +7,6 @@ struct ContentView: View {
 
     @State private var selectedFilter: EventFilter?
     @State private var sortOption: SortOption = .dueDate
-    @State private var isAddMenuOpen = false
     @State private var editorRoute: EditorRoute?
 
     private let horizontalPadding: CGFloat = 16
@@ -53,26 +52,14 @@ struct ContentView: View {
 
             mainContent
 
-            if isAddMenuOpen {
-                AddMenuOverlay(
-                    actions: AddAction.allCases,
-                    onDismiss: closeAddMenu,
-                    onSelect: handleAddAction
-                )
-                .zIndex(1)
-                .transition(.opacity)
-            }
-
-            FloatingAddButton(isOpen: isAddMenuOpen) {
-                toggleAddMenu()
+            FloatingAddButton {
+                openNewEvent()
             }
             .padding(.trailing, 24)
             .padding(.bottom, 28)
             .zIndex(2)
         }
         .dynamicTypeSize(.medium)
-        .animation(.spring(response: 0.42, dampingFraction: 0.86), value: isAddMenuOpen)
-        .sensoryFeedback(.impact(weight: .medium), trigger: isAddMenuOpen)
         .sensoryFeedback(.selection, trigger: selectedFilter)
         .sensoryFeedback(.selection, trigger: sortOption)
         .sheet(item: $editorRoute) { route in
@@ -192,27 +179,9 @@ struct ContentView: View {
         }
     }
 
-    private func toggleAddMenu() {
-        Haptics.impact(isAddMenuOpen ? .light : .medium)
-        isAddMenuOpen.toggle()
-    }
-
-    private func closeAddMenu() {
-        Haptics.selection()
-        isAddMenuOpen = false
-    }
-
-    private func handleAddAction(_ action: AddAction) {
-        Haptics.impact(.light)
-        let route = EditorRoute(item: action.makeItem(), isNew: true)
-
-        withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
-            isAddMenuOpen = false
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-            editorRoute = route
-        }
+    private func openNewEvent() {
+        Haptics.impact(.medium)
+        editorRoute = EditorRoute(item: AddAction(kind: .countdown).makeItem(), isNew: true)
     }
 
     private func delete(_ item: ProgressItem) {
@@ -321,7 +290,6 @@ private struct FilterChip: View {
 }
 
 private struct FloatingAddButton: View {
-    let isOpen: Bool
     let action: () -> Void
 
     var body: some View {
@@ -329,7 +297,6 @@ private struct FloatingAddButton: View {
             Image(systemName: "plus")
                 .font(.system(size: 27, weight: .regular))
                 .foregroundStyle(.white)
-                .rotationEffect(.degrees(isOpen ? 45 : 0))
                 .frame(width: 58, height: 58)
                 .background {
                     Circle().fill(Color(hex: "#1297F5").opacity(0.82))
@@ -339,69 +306,7 @@ private struct FloatingAddButton: View {
                 .shadow(color: .black.opacity(0.16), radius: 22, x: 0, y: 14)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isOpen ? "Close add menu" : "Open add menu")
-    }
-}
-
-private struct AddMenuOverlay: View {
-    let actions: [AddAction]
-    let onDismiss: () -> Void
-    let onSelect: (AddAction) -> Void
-
-    var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            Rectangle()
-                .fill(.white.opacity(0.86))
-                .background(.ultraThinMaterial)
-                .ignoresSafeArea()
-                .onTapGesture(perform: onDismiss)
-
-            VStack(alignment: .trailing, spacing: 18) {
-                ForEach(Array(actions.enumerated()), id: \.element.id) { index, action in
-                    AddMenuRow(action: action) {
-                        onSelect(action)
-                    }
-                    .transition(
-                        .asymmetric(
-                            insertion: .move(edge: .trailing)
-                                .combined(with: .opacity)
-                                .combined(with: .scale(scale: 0.9, anchor: .trailing)),
-                            removal: .opacity
-                                .combined(with: .scale(scale: 0.94, anchor: .trailing))
-                        )
-                    )
-                    .animation(.spring(response: 0.34, dampingFraction: 0.82).delay(Double(index) * 0.025), value: actions.count)
-                }
-            }
-            .padding(.trailing, 26)
-            .padding(.bottom, 112)
-            .zIndex(1)
-        }
-    }
-}
-
-private struct AddMenuRow: View {
-    let action: AddAction
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 16) {
-                Text(action.title)
-                    .font(.system(size: 21, weight: .regular))
-                    .foregroundStyle(.black)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-
-                Image(systemName: action.systemImage)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(.black)
-                    .frame(width: 38, height: 38)
-                    .liquidGlass(in: Circle(), interactive: true)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+        .accessibilityLabel("Create event")
     }
 }
 
@@ -519,7 +424,7 @@ private struct AddAction: Identifiable, Hashable {
                 endDate: Calendar.current.date(byAdding: .day, value: 365, to: .now) ?? .now,
                 tintHex: "#18A999",
                 backgroundHex: "#D9F6EE",
-                style: .minimal
+                style: .aqua
             )
         case .timer:
             return ProgressItem(
@@ -529,7 +434,7 @@ private struct AddAction: Identifiable, Hashable {
                 endDate: Calendar.current.date(byAdding: .hour, value: 1, to: .now) ?? .now,
                 tintHex: "#1D9BF0",
                 backgroundHex: "#DDF0FF",
-                style: .swiss
+                style: .aqua
             )
         case .birthday:
             return ProgressItem(
@@ -559,7 +464,7 @@ private struct AddAction: Identifiable, Hashable {
                 endDate: Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now,
                 tintHex: "#1D9BF0",
                 backgroundHex: "#DDF0FF",
-                style: .swiss
+                style: .aqua
             )
         }
     }
