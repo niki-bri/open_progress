@@ -1,0 +1,478 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0FBDA4481E6622E7E863B22D /* OpenProgressWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0DE7A7A19D3EB5B9DB43C95B /* OpenProgressWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		10CA1B916CD1FCD368D78320 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8F1909234BACB7024BD3810A /* LaunchScreen.storyboard */; };
+		2BD40278B5893BBA85E92678 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D2A19B1FB24E46FFFFEBCE /* ContentView.swift */; };
+		48B623E867B563E6C77EA1F9 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 427EA7F75C2542E99A5BF00B /* EditorView.swift */; };
+		682AEB808D4B1E9BDEC7BB2A /* ProgressStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3585A8D55D4F2C95AB00A318 /* ProgressStorage.swift */; };
+		6998DD7A359411FA841F335E /* ProgressItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7A685BC365C29BF30475D7 /* ProgressItem.swift */; };
+		6DE85E541B423934C916DF6A /* ProgressStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3585A8D55D4F2C95AB00A318 /* ProgressStorage.swift */; };
+		7CD67E15D87C7FB17D2FA451 /* WidgetCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51FC742AC350E871E55F5405 /* WidgetCardView.swift */; };
+		A426A35D529EA61CCC109467 /* OpenProgressWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0235CD708516D9AE0B9BEFA6 /* OpenProgressWidgets.swift */; };
+		B180022CE1B610B64FC04A17 /* ProgressItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA7A685BC365C29BF30475D7 /* ProgressItem.swift */; };
+		B62DBC04DADE6C27DD0823D8 /* WidgetCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51FC742AC350E871E55F5405 /* WidgetCardView.swift */; };
+		E68B8CBDE7640B3D168BE395 /* OpenProgressApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2545EFE8C49F969DA66C3D /* OpenProgressApp.swift */; };
+		F5BDFB9666D82B0680C8187D /* ProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B7ECB6DC7CF65A1C367EF9E /* ProgressStore.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C0B8B2BB9DC1B4E59A8817C2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D7CCF859E133A4C38DF2784 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0F7BF6B574EA5BECC0AD324E;
+			remoteInfo = OpenProgressWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		2824BE24A3EB617EE61DA67E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				0FBDA4481E6622E7E863B22D /* OpenProgressWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0235CD708516D9AE0B9BEFA6 /* OpenProgressWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenProgressWidgets.swift; sourceTree = "<group>"; };
+		0DE7A7A19D3EB5B9DB43C95B /* OpenProgressWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = OpenProgressWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		3585A8D55D4F2C95AB00A318 /* ProgressStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressStorage.swift; sourceTree = "<group>"; };
+		427EA7F75C2542E99A5BF00B /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
+		51FC742AC350E871E55F5405 /* WidgetCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetCardView.swift; sourceTree = "<group>"; };
+		7B7ECB6DC7CF65A1C367EF9E /* ProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressStore.swift; sourceTree = "<group>"; };
+		8F1909234BACB7024BD3810A /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		AA7A685BC365C29BF30475D7 /* ProgressItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressItem.swift; sourceTree = "<group>"; };
+		C0D2A19B1FB24E46FFFFEBCE /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		EF2545EFE8C49F969DA66C3D /* OpenProgressApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenProgressApp.swift; sourceTree = "<group>"; };
+		EF6430E38E545AD13EDECB3E /* OpenProgress.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OpenProgress.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		1CF8E7AA4BB98F2A69F47DDF /* OpenProgressWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				0235CD708516D9AE0B9BEFA6 /* OpenProgressWidgets.swift */,
+			);
+			path = OpenProgressWidgets;
+			sourceTree = "<group>";
+		};
+		2BF9F19BE5B5F29E5B7DD97A /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				AA7A685BC365C29BF30475D7 /* ProgressItem.swift */,
+				3585A8D55D4F2C95AB00A318 /* ProgressStorage.swift */,
+				51FC742AC350E871E55F5405 /* WidgetCardView.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		7B2D2A1B4EDFD4102195BE11 = {
+			isa = PBXGroup;
+			children = (
+				EA575A4465888E083BF687AC /* OpenProgress */,
+				1CF8E7AA4BB98F2A69F47DDF /* OpenProgressWidgets */,
+				C5FAD74DF4D7F6527478B941 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C5FAD74DF4D7F6527478B941 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EF6430E38E545AD13EDECB3E /* OpenProgress.app */,
+				0DE7A7A19D3EB5B9DB43C95B /* OpenProgressWidgets.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EA575A4465888E083BF687AC /* OpenProgress */ = {
+			isa = PBXGroup;
+			children = (
+				C0D2A19B1FB24E46FFFFEBCE /* ContentView.swift */,
+				427EA7F75C2542E99A5BF00B /* EditorView.swift */,
+				8F1909234BACB7024BD3810A /* LaunchScreen.storyboard */,
+				EF2545EFE8C49F969DA66C3D /* OpenProgressApp.swift */,
+				7B7ECB6DC7CF65A1C367EF9E /* ProgressStore.swift */,
+				2BF9F19BE5B5F29E5B7DD97A /* Shared */,
+			);
+			path = OpenProgress;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0F7BF6B574EA5BECC0AD324E /* OpenProgressWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B65A70957B3FC29F41098B9B /* Build configuration list for PBXNativeTarget "OpenProgressWidgets" */;
+			buildPhases = (
+				091C8E9DBD8C6CD1C96C9BCF /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OpenProgressWidgets;
+			packageProductDependencies = (
+			);
+			productName = OpenProgressWidgets;
+			productReference = 0DE7A7A19D3EB5B9DB43C95B /* OpenProgressWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		638106A9A22B241FD762C57A /* OpenProgress */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F50E78C55B525A644B780E2C /* Build configuration list for PBXNativeTarget "OpenProgress" */;
+			buildPhases = (
+				0E515D3F671031340935846F /* Sources */,
+				FC61D95734AE6E0836030C56 /* Resources */,
+				2824BE24A3EB617EE61DA67E /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C952E255126A898115D1B465 /* PBXTargetDependency */,
+			);
+			name = OpenProgress;
+			packageProductDependencies = (
+			);
+			productName = OpenProgress;
+			productReference = EF6430E38E545AD13EDECB3E /* OpenProgress.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4D7CCF859E133A4C38DF2784 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					0F7BF6B574EA5BECC0AD324E = {
+						DevelopmentTeam = A9KPZF869H;
+						ProvisioningStyle = Automatic;
+					};
+					638106A9A22B241FD762C57A = {
+						DevelopmentTeam = A9KPZF869H;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 14488F4DCAE41D3C7D3F92D2 /* Build configuration list for PBXProject "OpenProgress" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 7B2D2A1B4EDFD4102195BE11;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = C5FAD74DF4D7F6527478B941 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				638106A9A22B241FD762C57A /* OpenProgress */,
+				0F7BF6B574EA5BECC0AD324E /* OpenProgressWidgets */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FC61D95734AE6E0836030C56 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				10CA1B916CD1FCD368D78320 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		091C8E9DBD8C6CD1C96C9BCF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A426A35D529EA61CCC109467 /* OpenProgressWidgets.swift in Sources */,
+				6998DD7A359411FA841F335E /* ProgressItem.swift in Sources */,
+				682AEB808D4B1E9BDEC7BB2A /* ProgressStorage.swift in Sources */,
+				7CD67E15D87C7FB17D2FA451 /* WidgetCardView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0E515D3F671031340935846F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2BD40278B5893BBA85E92678 /* ContentView.swift in Sources */,
+				48B623E867B563E6C77EA1F9 /* EditorView.swift in Sources */,
+				E68B8CBDE7640B3D168BE395 /* OpenProgressApp.swift in Sources */,
+				B180022CE1B610B64FC04A17 /* ProgressItem.swift in Sources */,
+				6DE85E541B423934C916DF6A /* ProgressStorage.swift in Sources */,
+				F5BDFB9666D82B0680C8187D /* ProgressStore.swift in Sources */,
+				B62DBC04DADE6C27DD0823D8 /* WidgetCardView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C952E255126A898115D1B465 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0F7BF6B574EA5BECC0AD324E /* OpenProgressWidgets */;
+			targetProxy = C0B8B2BB9DC1B4E59A8817C2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1307460C0D0A2B0BAC6E17D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = OpenProgressWidgets/OpenProgressWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OpenProgressWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.openprogress.personal.widgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		2BD8770072D127C0B1AB9CB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = A9KPZF869H;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		34A25C73A098E4041480F864 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = A9KPZF869H;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5AEA85A01A9C18B4DB05C8D0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = OpenProgressWidgets/OpenProgressWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OpenProgressWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.openprogress.personal.widgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		78FDE74F856EBB7E4A01FC34 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OpenProgress/OpenProgress.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OpenProgress/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.openprogress.personal;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		EB1298045BB3753155D4827D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OpenProgress/OpenProgress.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OpenProgress/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.openprogress.personal;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		14488F4DCAE41D3C7D3F92D2 /* Build configuration list for PBXProject "OpenProgress" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				34A25C73A098E4041480F864 /* Debug */,
+				2BD8770072D127C0B1AB9CB9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B65A70957B3FC29F41098B9B /* Build configuration list for PBXNativeTarget "OpenProgressWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5AEA85A01A9C18B4DB05C8D0 /* Debug */,
+				1307460C0D0A2B0BAC6E17D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F50E78C55B525A644B780E2C /* Build configuration list for PBXNativeTarget "OpenProgress" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EB1298045BB3753155D4827D /* Debug */,
+				78FDE74F856EBB7E4A01FC34 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4D7CCF859E133A4C38DF2784 /* Project object */;
+}

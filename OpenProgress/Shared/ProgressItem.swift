@@ -1,0 +1,162 @@
+import Foundation
+import SwiftUI
+
+enum ProgressStyle: String, CaseIterable, Codable, Identifiable {
+    case swiss
+    case grid
+    case aqua
+    case retro
+    case minimal
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .swiss: "Swiss"
+        case .grid: "Grid"
+        case .aqua: "Aqua"
+        case .retro: "Retro"
+        case .minimal: "Minimal"
+        }
+    }
+}
+
+struct ProgressItem: Identifiable, Codable, Hashable {
+    var id: UUID
+    var title: String
+    var icon: String
+    var startDate: Date
+    var endDate: Date
+    var tintHex: String
+    var backgroundHex: String
+    var style: ProgressStyle
+    var showIcon: Bool
+    var createdAt: Date
+    var modifiedAt: Date?
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        icon: String,
+        startDate: Date,
+        endDate: Date,
+        tintHex: String,
+        backgroundHex: String,
+        style: ProgressStyle,
+        showIcon: Bool = true,
+        createdAt: Date = Date(),
+        modifiedAt: Date? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.icon = icon
+        self.startDate = startDate
+        self.endDate = endDate
+        self.tintHex = tintHex
+        self.backgroundHex = backgroundHex
+        self.style = style
+        self.showIcon = showIcon
+        self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
+    }
+
+    static let sample = ProgressItem(
+        title: "Japan trip",
+        icon: "airplane.departure",
+        startDate: Calendar.current.date(byAdding: .day, value: -24, to: .now) ?? .now,
+        endDate: Calendar.current.date(byAdding: .day, value: 42, to: .now) ?? .now,
+        tintHex: "#18A999",
+        backgroundHex: "#F6F2EA",
+        style: .aqua
+    )
+
+    var progress: Double {
+        progress(at: .now)
+    }
+
+    func progress(at date: Date) -> Double {
+        let total = endDate.timeIntervalSince(startDate)
+        guard total > 0 else { return date >= endDate ? 1 : 0 }
+        let elapsed = date.timeIntervalSince(startDate)
+        return min(max(elapsed / total, 0), 1)
+    }
+
+    func daysRemaining(at date: Date = .now) -> Int {
+        let start = Calendar.current.startOfDay(for: date)
+        let end = Calendar.current.startOfDay(for: endDate)
+        return max(Calendar.current.dateComponents([.day], from: start, to: end).day ?? 0, 0)
+    }
+
+    func statusText(at date: Date = .now) -> String {
+        if date >= endDate { return "Complete" }
+        let days = daysRemaining(at: date)
+        if days == 0 { return "Today" }
+        if days == 1 { return "1 day left" }
+        return "\(days) days left"
+    }
+
+    func homeTimeText(at date: Date = .now) -> String {
+        if date >= endDate {
+            let components = Calendar.current.dateComponents([.day, .hour], from: endDate, to: date)
+            let days = max(components.day ?? 0, 0)
+            let hours = max(components.hour ?? 0, 0)
+            if days > 0 {
+                return "\(days) \(days == 1 ? "day" : "days") ago"
+            }
+            if hours > 0 {
+                return "\(hours) \(hours == 1 ? "hr" : "hrs") ago"
+            }
+            return "Just now"
+        }
+
+        let components = Calendar.current.dateComponents([.day, .hour], from: date, to: endDate)
+        let days = max(components.day ?? 0, 0)
+        let hours = max(components.hour ?? 0, 0)
+
+        if days > 0 {
+            return "In \(days) \(days == 1 ? "day" : "days"),\n\(hours) \(hours == 1 ? "hr" : "hrs")"
+        }
+        if hours > 0 {
+            return "In \(hours) \(hours == 1 ? "hr" : "hrs")"
+        }
+        return "Today"
+    }
+}
+
+extension Color {
+    init(hex: String) {
+        let cleaned = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var value: UInt64 = 0
+        Scanner(string: cleaned).scanHexInt64(&value)
+
+        let red: Double
+        let green: Double
+        let blue: Double
+        let alpha: Double
+
+        switch cleaned.count {
+        case 3:
+            red = Double((value >> 8) & 0xF) / 15
+            green = Double((value >> 4) & 0xF) / 15
+            blue = Double(value & 0xF) / 15
+            alpha = 1
+        case 6:
+            red = Double((value >> 16) & 0xFF) / 255
+            green = Double((value >> 8) & 0xFF) / 255
+            blue = Double(value & 0xFF) / 255
+            alpha = 1
+        case 8:
+            red = Double((value >> 24) & 0xFF) / 255
+            green = Double((value >> 16) & 0xFF) / 255
+            blue = Double((value >> 8) & 0xFF) / 255
+            alpha = Double(value & 0xFF) / 255
+        default:
+            red = 0.1
+            green = 0.1
+            blue = 0.1
+            alpha = 1
+        }
+
+        self.init(.sRGB, red: red, green: green, blue: blue, opacity: alpha)
+    }
+}
