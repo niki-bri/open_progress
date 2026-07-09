@@ -271,7 +271,7 @@ private struct DashboardPanel: View {
                 largeLayout
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: ProgressWidgetMetrics.dashboardCornerRadius, style: .continuous))
     }
 
     private var smallLayout: some View {
@@ -394,7 +394,9 @@ private struct DashboardTile: View {
         item.homeTimeText(at: date).replacingOccurrences(of: "\n", with: " ")
     }
 
-    private var cornerRadius: CGFloat { variant == .large ? 16 : 14 }
+    private var cornerRadius: CGFloat {
+        variant == .large ? ProgressWidgetMetrics.dashboardLargeTileCornerRadius : ProgressWidgetMetrics.dashboardSmallTileCornerRadius
+    }
     private var tilePadding: CGFloat { variant == .large ? 14 : 10 }
     private var ringPadding: CGFloat { variant == .large ? 16 : 10 }
     private var ringSize: CGFloat { variant == .large ? 64 : 44 }

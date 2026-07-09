@@ -84,7 +84,7 @@ struct ContentView: View {
                 }
             }
             .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
+            .presentationDragIndicator(.hidden)
             .presentationCornerRadius(32)
             .presentationBackground(Color(hex: "#F2F2F7"))
         }

@@ -13,6 +13,7 @@ struct EditorView: View {
     @State private var showPercentage = false
     @State private var selectedFontWeight: EditorFontWeight = .regular
     @State private var direction: DirectionOption = .normal
+    @State private var scrollResetToken = UUID()
 
     let onSave: (ProgressItem) -> Void
 
@@ -48,13 +49,13 @@ struct EditorView: View {
         .safeAreaInset(edge: .top) {
             topBar
                 .padding(.horizontal, 16)
-                .padding(.top, 6)
-                .padding(.bottom, 12)
+                .padding(.top, 16)
+                .padding(.bottom, 10)
                 .background(Color(hex: "#F2F2F7").opacity(0.94))
         }
         .safeAreaInset(edge: .bottom) {
             bottomControl
-                .padding(.bottom, 14)
+                .padding(.bottom, 12)
         }
         .sheet(isPresented: $showingDateEditor) {
             DateCalendarSheet(item: $draft, kindLabel: kindLabel) {
@@ -82,7 +83,7 @@ struct EditorView: View {
                 Image(systemName: "xmark")
                     .font(.system(size: 22, weight: .regular))
                     .foregroundStyle(.black)
-                    .frame(width: 46, height: 46)
+                    .frame(width: 50, height: 50)
                     .liquidGlass(in: Circle(), interactive: true)
             }
             .buttonStyle(.plain)
@@ -94,9 +95,9 @@ struct EditorView: View {
                 saveDraft()
             } label: {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 24, weight: .regular))
+                    .font(.system(size: 23, weight: .regular))
                     .foregroundStyle(.white)
-                    .frame(width: 54, height: 54)
+                    .frame(width: 50, height: 50)
                     .background {
                         Circle().fill(Color(hex: "#1297F5").opacity(0.9))
                     }
@@ -113,8 +114,8 @@ struct EditorView: View {
             EditorPreviewCard(item: draft)
                 .aspectRatio(ProgressWidgetMetrics.mediumAspectRatio, contentMode: .fit)
                 .padding(.horizontal, 16)
-                .padding(.top, 4)
-                .padding(.bottom, 18)
+                .padding(.top, 16)
+                .padding(.bottom, 14)
         }
         .background(Color(hex: "#F2F2F7").opacity(0.97))
         .overlay(alignment: .bottom) {
@@ -134,29 +135,42 @@ struct EditorView: View {
     }
 
     private var panelScroll: some View {
-        ScrollView {
-            Group {
-                switch selectedPanel {
-                case .date:
-                    datePanel
-                case .measure:
-                    measurePanel
-                case .paint:
-                    paintPanel
+        ScrollViewReader { proxy in
+            ScrollView {
+                Color.clear
+                    .frame(height: 0)
+                    .id(scrollResetToken)
+
+                Group {
+                    switch selectedPanel {
+                    case .date:
+                        datePanel
+                    case .measure:
+                        measurePanel
+                    case .paint:
+                        paintPanel
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 156)
+                .transition(.opacity)
+            }
+            .scrollIndicators(.hidden)
+            .mask {
+                VStack(spacing: 0) {
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                        .frame(height: 22)
+                    Color.black
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 112)
-            .id(selectedPanel)
-            .transition(.opacity.combined(with: .move(edge: .bottom)))
-        }
-        .scrollIndicators(.hidden)
-        .mask {
-            VStack(spacing: 0) {
-                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 22)
-                Color.black
+            .onChange(of: selectedPanel) { _, _ in
+                scrollResetToken = UUID()
+                DispatchQueue.main.async {
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        proxy.scrollTo(scrollResetToken, anchor: .top)
+                    }
+                }
             }
         }
         .animation(.spring(response: 0.32, dampingFraction: 0.88), value: selectedPanel)
@@ -518,29 +532,20 @@ struct EditorView: View {
     }
 
     private var bottomControl: some View {
-        HStack(spacing: 4) {
+        Picker("Section", selection: $selectedPanel) {
             ForEach(EditorPanel.allCases) { panel in
-                Button {
-                    selectPanel(panel)
-                } label: {
-                    Image(systemName: panel.systemImage)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(selectedPanel == panel ? Color(hex: "#173957") : Color.black.opacity(0.32))
-                        .frame(width: 62, height: 48)
-                        .background {
-                            if selectedPanel == panel {
-                                Capsule()
-                                    .fill(.white)
-                                    .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 7)
-                            }
-                        }
-                }
-                .buttonStyle(.plain)
+                Image(systemName: panel.systemImage)
+                    .tag(panel)
             }
         }
-        .padding(5)
+        .pickerStyle(.segmented)
+        .frame(width: 236, height: 56)
+        .padding(6)
         .liquidGlass(in: Capsule(), tint: .white.opacity(0.2), interactive: true)
         .shadow(color: .black.opacity(0.10), radius: 24, x: 0, y: 12)
+        .onChange(of: selectedPanel) { _, _ in
+            Haptics.selection()
+        }
     }
 
     private var kindLabel: String {
@@ -706,8 +711,8 @@ private struct DateCalendarSheet: View {
         .safeAreaInset(edge: .top) {
             calendarTopBar
                 .padding(.horizontal, 16)
-                .padding(.top, 6)
-                .padding(.bottom, 12)
+                .padding(.top, 16)
+                .padding(.bottom, 10)
                 .background(Color(hex: "#F2F2F7").opacity(0.94))
         }
     }
@@ -722,7 +727,7 @@ private struct DateCalendarSheet: View {
                     Image(systemName: "xmark")
                         .font(.system(size: 22, weight: .regular))
                         .foregroundStyle(.black)
-                        .frame(width: 46, height: 46)
+                        .frame(width: 50, height: 50)
                         .liquidGlass(in: Circle(), interactive: true)
                 }
                 .buttonStyle(.plain)
@@ -735,9 +740,9 @@ private struct DateCalendarSheet: View {
                     onDone()
                 } label: {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 24, weight: .regular))
+                        .font(.system(size: 23, weight: .regular))
                         .foregroundStyle(.white)
-                        .frame(width: 54, height: 54)
+                        .frame(width: 50, height: 50)
                         .background {
                             Circle().fill(Color(hex: "#1297F5").opacity(0.9))
                         }
@@ -1034,7 +1039,7 @@ private struct EditorPreviewCard: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: ProgressWidgetMetrics.cardCornerRadius, style: .continuous)
                 .fill(cardBackground)
 
             ZStack {
@@ -1068,7 +1073,7 @@ private struct EditorPreviewCard: View {
             .padding(.horizontal, 20)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: ProgressWidgetMetrics.cardCornerRadius, style: .continuous))
         .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
     }
 }
